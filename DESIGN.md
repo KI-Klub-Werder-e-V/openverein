@@ -1,6 +1,6 @@
 ---
 name: OpenVerein
-description: Open-source club management for German volunteers, drawn like a sports hall floor.
+description: Open-Source-Vereinsverwaltung für Ehrenamtliche in Deutschland, gezeichnet wie ein Hallenboden.
 colors:
   ground: "#f3f4f1"
   surface: "#ffffff"
@@ -159,197 +159,196 @@ components:
     height: "56px"
 ---
 
-# Design System: OpenVerein
+# Designsystem: OpenVerein
 
 ## Overview
 
-**Creative North Star: "The Sports Hall Floor"**
+**Leitbild: „Der Hallenboden“**
 
-The admin app is a calm pale floor (birch ground) with a deep Hallenblau rail along the left. Structure comes from lines: 1px hairlines separate rows, sections and sheet parts, and each group owns one court-line colour that appears as a short 2px stroke, never as a filled box. One signal orange-red, taken from the handball line, marks primary actions, focus and the current selection. Nothing else on the screen is that colour.
+Die Admin-App ist ein ruhiger, heller Boden (Birkengrund) mit einer tiefen Hallenblau-Leiste am linken Rand. Struktur entsteht aus Linien: 1px-Haarlinien trennen Zeilen, Abschnitte und Teile eines Sheets, und jede Gruppe hat eine eigene Spielfeldlinien-Farbe, die als kurzer 2px-Strich erscheint, nie als gefüllte Fläche. Ein einziges Signal-Orangerot, entnommen der Handballlinie, markiert primäre Aktionen, den Fokus und die aktuelle Auswahl. Sonst hat nichts auf dem Bildschirm diese Farbe.
 
-The density is set for the work: tables with 44px rows at 14px, the page title large at top left with a one-line summary under it, and the table directly beneath. Detail opens in a side sheet from the right, so the list stays put. Editing happens in place. Cmd/Ctrl+K opens a command palette from anywhere. Copy is German and uses "Du".
+Die Dichte ist auf die Arbeit ausgelegt: Tabellen mit 44px-Zeilen bei 14px, der Seitentitel groß oben links mit einer einzeiligen Zusammenfassung darunter, und direkt darunter die Tabelle. Details öffnen sich in einem Sheet von rechts, sodass die Liste stehen bleibt. Bearbeitet wird direkt an Ort und Stelle. Cmd/Ctrl+K öffnet von überall eine Befehlspalette. Texte sind deutsch und verwenden „Du“.
 
-Rejected: a coloured header bar over grey cards and modal stacks (the easyVerein anti-reference), plus the banned generic tells listed under Don'ts.
+Verworfen: eine farbige Kopfleiste über grauen Karten und gestapelte Modals (die easyVerein-Anti-Referenz) sowie die verbotenen generischen Merkmale, die unter „Don't“ aufgeführt sind.
 
-**Key Characteristics:**
-- Pale ground, white surfaces only where data lives (tables, sheets, inputs, portal cards).
-- Lines carry structure; there are no card shadows.
-- Group colour always appears as a short court line next to its name.
-- One accent, used only for action, focus and current position.
-- Display face for headings and headline figures, text face for everything else.
-- Keyboard-first: palette, inline edit, row actions on hover and focus.
+**Wesentliche Merkmale:**
+- Heller Grund, weiße Flächen nur dort, wo Daten stehen (Tabellen, Sheets, Eingabefelder, Portalkarten).
+- Linien tragen die Struktur; es gibt keine Kartenschatten.
+- Die Gruppenfarbe erscheint immer als kurze Spielfeldlinie neben dem Namen.
+- Eine Akzentfarbe, nur für Aktion, Fokus und aktuelle Position.
+- Display-Schrift für Überschriften und Kennzahlen, Textschrift für alles andere.
+- Tastatur zuerst: Palette, Inline-Bearbeitung, Zeilenaktionen bei Hover und Fokus.
 
 ## Colors
 
-The palette is a cool, near-neutral floor with a deep blue rail, one hot accent and a fixed set of court-line hues.
+Die Palette ist ein kühler, nahezu neutraler Boden mit einer tiefblauen Leiste, einem kräftigen Akzent und einem festen Satz Spielfeldlinien-Farben.
 
-### Primary
-- **Handball-Line Orange-Red** (accent): primary buttons, the focus ring (`--focus` is the same value), the 24px court line under the current rail link, the current settings tab underline, the current portal tab bar, today's date in the month grid, the selected palette row's left edge, checkbox fill. Hover deepens to accent-hover. **Accent Wash** (accent-soft) is the selected table row and text selection.
+### Primärfarbe
+- **Handballlinien-Orangerot** (accent): primäre Buttons, der Fokusring (`--focus` hat denselben Wert), die 24px-Spielfeldlinie unter dem aktuellen Leisten-Link, die Unterstreichung des aktuellen Einstellungs-Tabs, die Leiste des aktuellen Portal-Tabs, das heutige Datum im Monatsraster, der linke Rand der ausgewählten Palettenzeile, die Füllung von Checkboxen. Bei Hover dunkler zu accent-hover. **Akzent-Lasur** (accent-soft) ist die ausgewählte Tabellenzeile und die Textauswahl.
 
-### Neutral
-- **Pale Birch Floor** (ground): page background for the app, portal and application form.
-- **Sheet White** (surface): tables, sheets, inputs, buttons, portal cards, the palette.
-- **Worn Floor** (surface-sunk): row hover, ghost-button hover, inline-form wells, out-of-month calendar days.
-- **Hallenblau** (rail): side rail, mobile top bar, auth side panel, portal top bar, the club marker on the application form. **Rail Lift** (rail-raised) is the current rail link. **Rail Chalk** (rail-ink) and **Rail Haze** (rail-ink-muted) are text on the rail.
-- **Hall Ink** (ink): body text, headings, the pressed segment, the bulk-action bar.
-- **Ink 2** (ink-2, 7.2:1 on ground): intros, table headers, labels in fact lists.
-- **Ink 3** (ink-3, 5.3:1 on surface): placeholders, meta, dates, axis labels.
-- **Hairline** (line): every 1px rule and table border.
-- **Control Edge** (line-strong, 3.5:1 on surface): borders of buttons, inputs, selects, the segmented control.
+### Neutraltöne
+- **Heller Birkenboden** (ground): Seitenhintergrund für App, Portal und Antragsformular.
+- **Sheet-Weiß** (surface): Tabellen, Sheets, Eingabefelder, Buttons, Portalkarten, die Palette.
+- **Abgelaufener Boden** (surface-sunk): Zeilen-Hover, Hover von Ghost-Buttons, Mulden für Inline-Formulare, Kalendertage außerhalb des Monats.
+- **Hallenblau** (rail): Seitenleiste, mobile Kopfleiste, Seitenpanel der Anmeldung, Kopfleiste des Portals, die Vereinsmarke im Antragsformular. **Leisten-Anhebung** (rail-raised) ist der aktuelle Leisten-Link. **Leisten-Kreide** (rail-ink) und **Leisten-Dunst** (rail-ink-muted) sind Text auf der Leiste.
+- **Hallentinte** (ink): Fließtext, Überschriften, das gedrückte Segment, die Leiste für Massenaktionen.
+- **Tinte 2** (ink-2, 7,2:1 auf ground): Einleitungen, Tabellenköpfe, Beschriftungen in Faktenlisten.
+- **Tinte 3** (ink-3, 5,3:1 auf surface): Platzhalter, Metaangaben, Datumsangaben, Achsenbeschriftungen.
+- **Haarlinie** (line): jede 1px-Linie und jeder Tabellenrahmen.
+- **Bedienkante** (line-strong, 3,5:1 auf surface): Rahmen von Buttons, Eingabefeldern, Auswahllisten, dem Segment-Control.
 
-### State
-- **ok / warn / danger** with their `-soft` washes: alerts (soft background, strong text), status dots, the warnings list in the member sheet, field errors (danger, 600 weight).
-- **Hall Yellow** (demo): the demo banner only, text #2a2100.
+### Zustände
+- **ok / warn / danger** mit ihren `-soft`-Lasuren: Hinweise (heller Hintergrund, kräftiger Text), Statuspunkte, die Warnliste im Mitglieder-Sheet, Feldfehler (danger, Gewicht 600).
+- **Hallengelb** (demo): nur das Demo-Banner, Text #2a2100.
 
-### Court lines (group and calendar colours)
-blau, gruen, rot, gelb, orange, tuerkis, grau, schwarz. A group or calendar stores the key; components set `--court: var(--court-<key>)` and draw with `var(--court, var(--court-grau))`.
+### Spielfeldlinien (Gruppen- und Kalenderfarben)
+blau, gruen, rot, gelb, orange, tuerkis, grau, schwarz. Eine Gruppe oder ein Kalender speichert den Schlüssel; Komponenten setzen `--court: var(--court-<key>)` und zeichnen mit `var(--court, var(--court-grau))`.
 
-### Named Rules
-**The One Signal Rule.** The accent marks action, focus and "you are here". If it is not clickable, focused, selected or current, it is not accent.
+### Benannte Regeln
+**Die Ein-Signal-Regel.** Der Akzent markiert Aktion, Fokus und „Du bist hier“. Was nicht anklickbar, fokussiert, ausgewählt oder aktuell ist, ist nicht Akzent.
 
-**The Line-Not-Fill Rule.** Court colours are drawn as lines (2-3px strokes, a 2px inset underline, a 2px left bar), always next to a text label. Never a filled chip or tinted card.
+**Die Linie-statt-Fläche-Regel.** Spielfeldfarben werden als Linien gezeichnet (2-3px-Striche, eine 2px eingelassene Unterstreichung, ein 2px-Balken links), immer neben einer Textbeschriftung. Nie ein gefüllter Chip oder eine eingefärbte Karte.
 
 ## Typography
 
-**Display Font:** Barlow Semi Condensed 600 (fallback Source Sans 3 Variable, sans-serif), self-hosted via @fontsource
-**Body Font:** Source Sans 3 Variable (fallback Source Sans 3, system-ui, sans-serif), self-hosted via @fontsource
+**Display-Schrift:** Barlow Semi Condensed 600 (Fallback Source Sans 3 Variable, sans-serif), selbst gehostet über @fontsource
+**Textschrift:** Source Sans 3 Variable (Fallback Source Sans 3, system-ui, sans-serif), selbst gehostet über @fontsource
 
-**Character:** Condensed hall-signage headings over a warm, highly legible humanist text face. Only weight 600 of the display face ships.
+**Charakter:** Schmal laufende Überschriften wie Hallenbeschilderung über einer warmen, sehr gut lesbaren humanistischen Textschrift. Von der Display-Schrift wird nur das Gewicht 600 ausgeliefert.
 
-### Hierarchy
-- **Display** (600, 32px, 1.1, -0.01em): page h1, portal and application-form h1 (portal/form tighten to 1.05 / -0.02em).
-- **Headline** (600, 22px): section h2, sheet titles, portal card titles.
-- **Title** (600, 18px): h3, sheet section heads, rail club name, form legends.
-- **Body** (400, 15px, 1.55): default text, inputs. Intros cap at 70ch, previews at 62ch.
-- **Body dense** (14px): tables, buttons (600), field labels (600), alerts, toolbars.
-- **Label / meta** (13px): table headers (600, ink-2), hints, meta, calendar entries, portal tab labels.
-- **Figure** (display 600, 32px, line-height 1, tabular): overview counts, label below in 14px ink-2.
+### Hierarchie
+- **Display** (600, 32px, 1.1, -0.01em): h1 der Seite, h1 in Portal und Antragsformular (Portal/Formular enger mit 1.05 / -0.02em).
+- **Headline** (600, 22px): h2 eines Abschnitts, Sheet-Titel, Titel von Portalkarten.
+- **Title** (600, 18px): h3, Abschnittsköpfe im Sheet, Vereinsname in der Leiste, Legenden von Formularen.
+- **Body** (400, 15px, 1.55): Standardtext, Eingabefelder. Einleitungen höchstens 70ch, Vorschauen höchstens 62ch.
+- **Body dense** (14px): Tabellen, Buttons (600), Feldbeschriftungen (600), Hinweise, Werkzeugleisten.
+- **Label / Meta** (13px): Tabellenköpfe (600, ink-2), Hilfetexte, Metaangaben, Kalendereinträge, Beschriftungen der Portal-Tabs.
+- **Figure** (Display 600, 32px, Zeilenhöhe 1, tabellarisch): Zahlen in der Übersicht, Beschriftung darunter in 14px ink-2.
 
-### Named Rules
-**The Tabular Column Rule.** Body text keeps proportional figures (`'tnum' 0` on body). Numbers that align or compare (money and number columns, dates in timelines and court-line labels, headline figures) switch on tabular numerals and money columns align right.
+### Benannte Regeln
+**Die Tabellenziffern-Regel.** Fließtext behält proportionale Ziffern (`'tnum' 0` auf body). Zahlen, die sich ausrichten oder vergleichen (Geld- und Zahlenspalten, Datumsangaben in Zeitleisten und Spielfeldlinien-Beschriftungen, Kennzahlen), schalten Tabellenziffern ein, und Geldspalten sind rechtsbündig.
 
-**The No-Caps Rule.** No uppercase labels and no tracked-out small caps anywhere; hierarchy comes from size, weight and colour.
+**Die Keine-Versalien-Regel.** Nirgends Beschriftungen in Großbuchstaben und keine gesperrten Kapitälchen; Hierarchie entsteht aus Größe, Gewicht und Farbe.
 
 ## Layout
 
-- **Shell:** two-column grid, rail 232px plus main. Page padding 48px sides and top, 64px bottom, max width 1440px.
-- **Page head:** h1 and one-line intro at top left, actions top right (flex-end aligned, wraps), 32px gap to content.
-- **Rhythm:** 8px grid with a 4px half step (s-1 to s-8). Sections sit 48px apart; section h2 has 16px below.
-- **Control height:** 36px, rising to 44px on coarse pointers.
-- **Breakpoints:** 860px (rail becomes an off-canvas drawer with a 56px Hallenblau top bar and a scrim; auth stacks), 760px (`hide-sm` columns drop, status labels drop to 13px and may wrap, calendar events become 4px bars, see Known exceptions), 560px (form rows stack, agenda rows stack), 900px (composer stacks over preview), 720px (portal tabs move from the bottom to a top row).
-- **Forms:** column with 16px gaps; two-up rows that collapse below 560px.
-- **Portal and application form:** one centred column, max 600px, padding 24px/16px.
+- **Rahmen:** zweispaltiges Grid, Leiste 232px plus Hauptbereich. Seitenabstand 48px seitlich und oben, 64px unten, maximale Breite 1440px.
+- **Seitenkopf:** h1 und einzeilige Einleitung oben links, Aktionen oben rechts (an flex-end ausgerichtet, bricht um), 32px Abstand zum Inhalt.
+- **Rhythmus:** 8px-Raster mit 4px-Halbschritt (s-1 bis s-8). Abschnitte stehen 48px auseinander; h2 eines Abschnitts hat 16px Abstand darunter.
+- **Höhe von Bedienelementen:** 36px, bei groben Zeigegeräten 44px.
+- **Breakpoints:** 860px (die Leiste wird zur Off-Canvas-Schublade mit 56px-Kopfleiste in Hallenblau und Scrim; die Anmeldung stapelt sich), 760px (`hide-sm`-Spalten entfallen, Statusbeschriftungen werden 13px und dürfen umbrechen, Kalendertermine werden zu 4px-Balken, siehe Bekannte Ausnahmen), 560px (Formularzeilen stapeln sich, Agendazeilen stapeln sich), 900px (Editor stapelt sich über der Vorschau), 720px (Portal-Tabs wandern von unten in eine obere Reihe).
+- **Formulare:** Spalte mit 16px Abständen; zweispaltige Zeilen, die unter 560px zusammenfallen.
+- **Portal und Antragsformular:** eine zentrierte Spalte, höchstens 600px, Innenabstand 24px/16px.
 
 ## Elevation & Depth
 
-Flat by default. Depth comes from the ground/surface step and from hairlines. Only things that float above the page cast a shadow.
+Standardmäßig flach. Tiefe entsteht aus der Stufe zwischen ground und surface und aus Haarlinien. Nur was über der Seite schwebt, wirft einen Schatten.
 
-### Shadow Vocabulary
-- **Sheet edge** (`box-shadow: -12px 0 32px rgb(20 32 46 / 0.12)`): the right side sheet only.
-- **Pop** (`box-shadow: 0 12px 32px rgb(20 32 46 / 0.18)`): the command palette and the open mobile rail drawer.
-- Backdrops: dialog `rgb(20 32 46 / 0.35)`, mobile scrim `rgb(20 32 46 / 0.4)`.
+### Schatten-Vokabular
+- **Sheet-Kante** (`box-shadow: -12px 0 32px rgb(20 32 46 / 0.12)`): nur das Sheet rechts.
+- **Pop** (`box-shadow: 0 12px 32px rgb(20 32 46 / 0.18)`): die Befehlspalette und die geöffnete mobile Leisten-Schublade.
+- Hintergründe: Dialog `rgb(20 32 46 / 0.35)`, mobiler Scrim `rgb(20 32 46 / 0.4)`.
 
-### Named Rules
-**The Floor-Is-Flat Rule.** Tables, cards, banners and buttons never carry a shadow. If it sits on the floor, it is outlined with a 1px hairline.
+### Benannte Regeln
+**Die Der-Boden-ist-flach-Regel.** Tabellen, Karten, Banner und Buttons tragen nie einen Schatten. Was auf dem Boden liegt, wird mit einer 1px-Haarlinie umrandet.
 
 ## Shapes
 
-Square, workmanlike corners: 4px on every control, table wrapper, alert, card and segment container, 3px on the pressed segment and kbd, 2px on calendar entries and court-line strokes. Circles appear only as status dots (7px), checklist ticks (18px) and the open-ended arrow on a court line (a small triangle). Borders are 1px; the only 2px strokes are court lines, focus outlines and current-tab underlines.
+Eckige, handwerkliche Ecken: 4px an jedem Bedienelement, Tabellenrahmen, Hinweis, jeder Karte und jedem Segment-Container, 3px am gedrückten Segment und an kbd, 2px an Kalendereinträgen und Spielfeldlinien-Strichen. Kreise gibt es nur als Statuspunkte (7px), Checklisten-Häkchen (18px) und als offene Pfeilspitze an einer Spielfeldlinie (ein kleines Dreieck). Rahmen sind 1px; die einzigen 2px-Striche sind Spielfeldlinien, Fokus-Outlines und Unterstreichungen des aktuellen Tabs.
 
 ## Components
 
 ### Buttons
-- **Shape:** 4px radius, 36px tall (44px coarse), 16px side padding, 14px/600 text, optional 16-18px Lucide icon with 8px gap.
-- **Default:** white with a Control Edge border; hover Worn Floor.
-- **Primary:** accent fill and border, white text; hover accent-hover. One per view region (page head, sheet foot, inline form).
-- **Ghost:** no fill, no border; hover Worn Floor. Used for Cancel and low-stakes row actions.
-- **Danger:** default or ghost with danger text; never a red fill.
-- **Disabled / busy:** opacity 0.55, `not-allowed` cursor; busy uses `aria-busy`.
-- **Icon button:** square at control height, transparent, ink-2, hover 12% grey wash. Always has an `aria-label`.
-- **Link-like:** text button, ink-2 underlined, for quiet actions inside dense lists.
+- **Form:** 4px Radius, 36px hoch (44px bei groben Zeigegeräten), 16px seitlicher Innenabstand, Text 14px/600, optional ein Lucide-Icon mit 16-18px und 8px Abstand.
+- **Standard:** weiß mit Rahmen in Bedienkante; Hover Abgelaufener Boden.
+- **Primär:** Akzentfüllung und -rahmen, weißer Text; Hover accent-hover. Einer pro Bereich einer Ansicht (Seitenkopf, Sheet-Fuß, Inline-Formular).
+- **Ghost:** keine Füllung, kein Rahmen; Hover Abgelaufener Boden. Für Abbrechen und Zeilenaktionen mit wenig Tragweite.
+- **Gefahr:** Standard oder Ghost mit danger-Text; nie eine rote Füllung.
+- **Deaktiviert / beschäftigt:** Deckkraft 0.55, Cursor `not-allowed`; beschäftigt verwendet `aria-busy`.
+- **Icon-Button:** quadratisch in Bedienhöhe, transparent, ink-2, Hover 12 % graue Lasur. Hat immer ein `aria-label`.
+- **Linkartig:** Text-Button, ink-2 unterstrichen, für leise Aktionen in dichten Listen.
 
-### Inputs / Fields
-- **Style:** white, 1px Control Edge, 4px radius, 36px, 12px padding, 15px text. Selects use a drawn chevron; textareas start at 96px.
-- **Hover:** border to ink-3. **Focus:** 2px accent outline at 0 offset plus accent border.
-- **Error:** `aria-invalid` danger border; message in 13px/600 danger below.
-- **Label:** 14px/600 ink above; hint 13px ink-3.
-- **Search:** leading icon at 10px, trailing kbd hint (`/`), max 420px.
+### Eingabefelder
+- **Stil:** weiß, 1px Bedienkante, 4px Radius, 36px, 12px Innenabstand, 15px Text. Auswahllisten haben einen gezeichneten Chevron; Textareas beginnen bei 96px.
+- **Hover:** Rahmen wird ink-3. **Fokus:** 2px Akzent-Outline mit Versatz 0 plus Akzentrahmen.
+- **Fehler:** `aria-invalid` mit danger-Rahmen; Meldung in 13px/600 danger darunter.
+- **Beschriftung:** 14px/600 ink darüber; Hilfetext 13px ink-3.
+- **Suche:** vorangestelltes Icon bei 10px, nachgestellter kbd-Hinweis (`/`), höchstens 420px.
 
-### Segmented control
-White pill-less group in a 1px Control Edge frame with 2px inner padding; pressed segment is Hall Ink with white text; hover Worn Floor. Used for list views (Aktuell, Aktiv, Anträge, …).
+### Segment-Control
+Gruppe ohne Pillenform in einem 1px-Rahmen aus Bedienkante mit 2px Innenabstand; das gedrückte Segment ist Hallentinte mit weißem Text; Hover Abgelaufener Boden. Für Listenansichten (Aktuell, Aktiv, Anträge, …).
 
-### Tables
-- White wrapper, 1px hairline, 4px radius, horizontal scroll inside.
-- Headers 13px/600 ink-2. Rows 44px, 14px, hairline between rows, none after the last.
-- Row hover Worn Floor; selected row Accent Wash; keyboard focus 2px inset accent outline; clickable rows take a pointer.
-- Name cell 600 ink. Number and money cells right-aligned, tabular.
-- **Row actions** are hidden until the row is hovered or has focus inside.
-- **Bulk bar:** when rows are checked, a Hall Ink bar with white text and 32px controls appears above the table.
-- Table foot: 14px ink-3 count line.
+### Tabellen
+- Weißer Rahmen, 1px Haarlinie, 4px Radius, horizontales Scrollen innerhalb.
+- Köpfe 13px/600 ink-2. Zeilen 44px, 14px, Haarlinie zwischen den Zeilen, keine nach der letzten.
+- Zeilen-Hover Abgelaufener Boden; ausgewählte Zeile Akzent-Lasur; Tastaturfokus 2px eingelassene Akzent-Outline; anklickbare Zeilen zeigen einen Zeiger.
+- Namenszelle 600 ink. Zahlen- und Geldzellen rechtsbündig, tabellarisch.
+- **Zeilenaktionen** sind verborgen, bis die Zeile gehovert wird oder der Fokus in ihr liegt.
+- **Massenleiste:** Sind Zeilen angehakt, erscheint über der Tabelle eine Leiste in Hallentinte mit weißem Text und 32px-Bedienelementen.
+- Tabellenfuß: Zählzeile in 14px ink-3.
 
-### Side sheet
-Native `<dialog>` from the right, `min(520px, 100vw)`, full height, Sheet edge shadow, enters with a 24px slide and fade (220ms). Head: title (h2, focused on open so no ring flashes) and close icon button, hairline below. Body scrolls, 24px padding, sections divided by hairlines with 18px heads and a 9.5rem label column for facts. Optional foot right-aligns actions. Escape and backdrop click close it. Sheets replace modals; they do not stack.
+### Sheet
+Natives `<dialog>` von rechts, `min(520px, 100vw)`, volle Höhe, Schatten Sheet-Kante, erscheint mit 24px Einschub und Einblendung (220ms). Kopf: Titel (h2, beim Öffnen fokussiert, damit kein Ring aufblitzt) und Icon-Button zum Schließen, Haarlinie darunter. Der Körper scrollt, 24px Innenabstand, Abschnitte durch Haarlinien getrennt, mit 18px-Köpfen und einer 9.5rem-Beschriftungsspalte für Fakten. Ein optionaler Fuß richtet Aktionen rechts aus. Escape und Klick auf den Hintergrund schließen es. Sheets ersetzen Modals; sie stapeln sich nicht.
 
-### Inline edit
-The value is a button with a dotted Control Edge underline and a text cursor; hover Worn Floor; empty values read "hinzufügen" in ink-3. Click or Enter turns it into an input with Speichern (primary) and Abbrechen (ghost). Enter saves (Cmd/Ctrl+Enter in textareas), Escape cancels, server validation errors show inline with `role="alert"`. No modal.
+### Inline-Bearbeitung
+Der Wert ist ein Button mit gepunkteter Unterstreichung in Bedienkante und Text-Cursor; Hover Abgelaufener Boden; leere Werte lauten „hinzufügen“ in ink-3. Klick oder Enter macht daraus ein Eingabefeld mit Speichern (primär) und Abbrechen (Ghost). Enter speichert (Cmd/Ctrl+Enter in Textareas), Escape bricht ab, Validierungsfehler vom Server erscheinen inline mit `role="alert"`. Kein Modal.
 
-### Command palette
-Native dialog, max 640px, 12vh from the top, 6px radius, Pop shadow. 56px borderless input at 18px with a hairline below; result rows 4px radius, selected row Worn Floor with a 2px accent inset on the left; meta right-aligned; footer with kbd hints in 13px ink-3.
+### Befehlspalette
+Nativer Dialog, höchstens 640px, 12vh vom oberen Rand, 6px Radius, Schatten Pop. 56px-Eingabefeld ohne Rahmen mit 18px und einer Haarlinie darunter; Ergebniszeilen mit 4px Radius, ausgewählte Zeile Abgelaufener Boden mit 2px eingelassenem Akzent links; Metaangaben rechtsbündig; Fußzeile mit kbd-Hinweisen in 13px ink-3.
 
 ### Navigation
-- **Rail:** Hallenblau, club name in the display face with a 13px muted subline, a "Suchen" palette trigger with kbd hint (outlined in 22% Rail Chalk), then links at control height with 18px Lucide icons. Hover: Rail Chalk text on a 6% white wash. Current: Rail Lift fill, white text and a 24px accent court line under the label. Logout sits in the foot under a hairline.
-- **Sub-navigation:** 14px/600 ink-2 tabs on a hairline; current tab ink with a 2px accent underline.
-- **Mobile:** 56px Hallenblau top bar with menu icon button; rail slides in as a drawer.
+- **Leiste:** Hallenblau, Vereinsname in der Display-Schrift mit 13px gedämpfter Unterzeile, ein „Suchen“-Auslöser für die Palette mit kbd-Hinweis (umrandet mit 22 % Leisten-Kreide), dann Links in Bedienhöhe mit 18px-Lucide-Icons. Hover: Text in Leisten-Kreide auf 6 % weißer Lasur. Aktuell: Füllung Leisten-Anhebung, weißer Text und eine 24px-Akzent-Spielfeldlinie unter der Beschriftung. Abmelden sitzt im Fuß unter einer Haarlinie.
+- **Unternavigation:** Tabs in 14px/600 ink-2 auf einer Haarlinie; aktueller Tab ink mit 2px Akzent-Unterstreichung.
+- **Mobil:** 56px-Kopfleiste in Hallenblau mit Menü-Icon-Button; die Leiste fährt als Schublade herein.
 
-### Court lines (signature)
-- **Group badge:** a 14×2px stroke in the group colour, 6px gap, then the group name at 14px. Used in tables, sheets and the portal.
-- **Membership history:** each membership is a 3px line on a dashed hairline track across one shared time axis, from start to end date; open memberships end in a small arrowhead. Group name left, tabular dates right, end action revealed on hover/focus. An axis below shows the first date and "heute".
-- **Calendar:** month-grid events carry a 2px inset underline in their calendar colour (4px solid bars below 760px); agenda items carry a 2px left bar. Today's date is an accent tile.
-- **Auth panel:** faint court markings drawn in SVG across the Hallenblau side panel (decorative, `aria-hidden`).
+### Spielfeldlinien (Markenzeichen)
+- **Gruppen-Badge:** ein 14×2px-Strich in der Gruppenfarbe, 6px Abstand, dann der Gruppenname in 14px. In Tabellen, Sheets und im Portal.
+- **Mitgliedschaftsverlauf:** Jede Mitgliedschaft ist eine 3px-Linie auf einer gestrichelten Haarlinien-Spur entlang einer gemeinsamen Zeitachse, vom Anfangs- bis zum Enddatum; offene Mitgliedschaften enden in einer kleinen Pfeilspitze. Gruppenname links, tabellarische Daten rechts, Beenden-Aktion erscheint bei Hover/Fokus. Eine Achse darunter zeigt das erste Datum und „heute“.
+- **Kalender:** Termine im Monatsraster tragen eine 2px eingelassene Unterstreichung in ihrer Kalenderfarbe (unter 760px durchgehende 4px-Balken); Agenda-Einträge tragen einen 2px-Balken links. Das heutige Datum ist eine Akzentkachel.
+- **Anmeldepanel:** dezente Spielfeldmarkierungen als SVG über dem Hallenblau-Seitenpanel (dekorativ, `aria-hidden`).
 
 ### Status
-A 7px dot in the state colour plus the label in the same colour at 14px: aktiv ok, künftig court-blau, Antrag/gekündigt warn, ehemalig ink-3, abgelehnt danger. `data-s` picks one of these colour slots; invoices, mandates, deliveries, SEPA items and import rows map their own states onto the same slots.
+Ein 7px-Punkt in der Zustandsfarbe plus die Beschriftung in derselben Farbe mit 14px: aktiv ok, künftig court-blau, Antrag/gekündigt warn, ehemalig ink-3, abgelehnt danger. `data-s` wählt einen dieser Farbplätze; Rechnungen, Mandate, Zustellungen, SEPA-Posten und Importzeilen bilden ihre eigenen Zustände auf dieselben Plätze ab.
 
-### Alerts and checklist
-Alerts: 4px radius, soft wash, strong text, 14px, no icon box. Overview checklist: hairline-ruled rows with an 18px circle tick; done rows fill the tick ok-green and strike the label through in ink-2.
+### Hinweise und Checkliste
+Hinweise: 4px Radius, helle Lasur, kräftiger Text, 14px, kein Icon-Kasten. Checkliste in der Übersicht: durch Haarlinien getrennte Zeilen mit einem 18px-Kreis als Häkchen; erledigte Zeilen füllen das Häkchen ok-grün und streichen die Beschriftung in ink-2 durch.
 
-### Member portal
-Phone first. Hallenblau top bar with the club name and a 44px logout. One column up to 600px. Bottom tab bar (3 tabs, 56px, white, hairline top, safe-area aware); the current tab is ink/600 with a 3px accent bar on its top edge. From 720px the tabs move to a centred top row with the bar under the current tab. Content uses white cards (1px hairline, 4px radius, 16px padding) and hairline lists with 56px tappable rows; a due payment shows as a row led by a short accent line.
+### Mitgliederportal
+Telefon zuerst. Kopfleiste in Hallenblau mit dem Vereinsnamen und einem 44px-Abmelden. Eine Spalte bis 600px. Untere Tab-Leiste (3 Tabs, 56px, weiß, Haarlinie oben, berücksichtigt die Safe Area); der aktuelle Tab ist ink/600 mit einem 3px-Akzentbalken an seiner Oberkante. Ab 720px wandern die Tabs in eine zentrierte obere Reihe mit dem Balken unter dem aktuellen Tab. Der Inhalt verwendet weiße Karten (1px Haarlinie, 4px Radius, 16px Innenabstand) und Haarlinien-Listen mit 56px hohen, antippbaren Zeilen; eine fällige Zahlung erscheint als Zeile, die mit einer kurzen Akzentlinie beginnt.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** take every colour, size, space and duration from `tokens.css`; new group colours get a `--court-*` token.
-- **Do** keep the accent for primary action, focus, selection and current position.
-- **Do** draw group and calendar colour as a short line next to its name.
-- **Do** open detail and edit flows in the right side sheet or inline; keep the list visible.
-- **Do** right-align money and number columns with tabular numerals.
-- **Do** show row actions on hover and focus-within, never hide them from keyboard users.
-- **Do** keep text at 15px for body and 13px as the floor for meta; keep the 2px accent focus outline on every interactive element.
-- **Do** give controls 44px on coarse pointers and in the portal.
-- **Do** write German UI copy with "Du"; label demo data with the yellow demo banner.
-- **Do** zero all motion under `prefers-reduced-motion` (already global).
+- **Nimm** jede Farbe, Größe, jeden Abstand und jede Dauer aus `tokens.css`; neue Gruppenfarben bekommen ein `--court-*`-Token.
+- **Halte** den Akzent für primäre Aktion, Fokus, Auswahl und aktuelle Position frei.
+- **Zeichne** Gruppen- und Kalenderfarbe als kurze Linie neben ihrem Namen.
+- **Öffne** Detail- und Bearbeitungsabläufe im Sheet rechts oder inline; lass die Liste sichtbar.
+- **Richte** Geld- und Zahlenspalten rechtsbündig mit Tabellenziffern aus.
+- **Zeige** Zeilenaktionen bei Hover und focus-within, versteck sie nie vor Tastaturnutzern.
+- **Halte** Fließtext bei 15px und Metaangaben bei mindestens 13px; behalte die 2px-Akzent-Fokus-Outline an jedem interaktiven Element.
+- **Gib** Bedienelementen 44px bei groben Zeigegeräten und im Portal.
+- **Schreibe** deutsche UI-Texte mit „Du“; kennzeichne Demodaten mit dem gelben Demo-Banner.
+- **Setze** jede Bewegung unter `prefers-reduced-motion` auf null (bereits global).
 
 ### Don't:
-- **Don't** add a coloured header bar over grey cards, or stack modals (the easyVerein anti-reference).
-- **Don't** use a centred hero with a gradient blob, three identical cards, glassmorphism, purple gradients, or rounded-2xl with shadow-lg.
-- **Don't** put shadows on tables, cards, buttons or banners.
-- **Don't** exceed 4px radius on controls and containers.
-- **Don't** fill chips or cards with a group colour.
-- **Don't** use uppercase eyebrow or kicker labels above headings.
-- **Don't** use emoji or text glyphs as icons; icons are Lucide SVGs at 14-18px.
-- **Don't** load third-party fonts, trackers or CDNs; fonts ship through @fontsource.
-- **Don't** invent stats or testimonials; overview figures are live counts.
-- **Don't** let colour carry meaning alone; pair every status and court colour with text.
+- **Keine** farbige Kopfleiste über grauen Karten und keine gestapelten Modals (die easyVerein-Anti-Referenz).
+- **Kein** zentrierter Hero mit Verlaufs-Blob, keine drei identischen Karten, kein Glassmorphism, keine Lila-Verläufe, kein rounded-2xl mit shadow-lg.
+- **Keine** Schatten auf Tabellen, Karten, Buttons oder Bannern.
+- **Nicht mehr** als 4px Radius an Bedienelementen und Containern.
+- **Keine** Chips oder Karten, die mit einer Gruppenfarbe gefüllt sind.
+- **Keine** Overline- oder Kicker-Beschriftungen in Großbuchstaben über Überschriften.
+- **Keine** Emojis oder Textzeichen als Icons; Icons sind Lucide-SVGs mit 14-18px.
+- **Keine** Schriften, Tracker oder CDNs von Dritten laden; Schriften kommen über @fontsource.
+- **Keine** erfundenen Statistiken oder Testimonials; Zahlen in der Übersicht sind Live-Zählungen.
+- **Farbe nie** allein Bedeutung tragen lassen; jeder Status und jede Spielfeldfarbe bekommt Text dazu.
 
-## Known exceptions
+## Bekannte Ausnahmen
 
-The code breaks a few of the rules above on purpose or as open debt. Don't copy them into new work, and don't "fix" them without a decision:
+Der Code bricht einige der obigen Regeln absichtlich oder als offene Schuld. Übernimm sie nicht in neue Arbeit und „repariere“ sie nicht ohne Entscheidung:
 
-- **`.pill`** (neutral meta tag: "Standard", "minderjährig", "Rundschreiben") is fully rounded with a grey fill. It is the one rounded shape; new tags use it rather than inventing another.
-- **Command palette** uses a 6px radius.
-- **Phone calendar:** below 760px month-grid events are 4px coloured bars without text, which breaks the 44px target and the no-colour-alone rule. Debt: make the day cell the target and show a count.
-- **Hard-coded colours:** `#fff` on accent and dark surfaces, the court lines in the sign-in panel SVG, and the QR codes. Everything else comes from tokens.
-- **`kbd`** hints are 12px, below the 13px meta floor.
-- **Arrows in link text** ("← Zurück", "× aufheben") are text glyphs, not icons.
-
+- **`.pill`** (neutrales Meta-Tag: „Standard“, „minderjährig“, „Rundschreiben“) ist vollständig abgerundet mit grauer Füllung. Es ist die einzige abgerundete Form; neue Tags verwenden sie, statt eine weitere zu erfinden.
+- **Befehlspalette** verwendet 6px Radius.
+- **Kalender auf dem Telefon:** Unter 760px sind Termine im Monatsraster farbige 4px-Balken ohne Text; das bricht die 44px-Zielgröße und die Regel „nie Farbe allein“. Schuld: die Tageszelle zum Ziel machen und eine Anzahl zeigen.
+- **Fest kodierte Farben:** `#fff` auf Akzent und dunklen Flächen, die Spielfeldlinien im SVG des Anmeldepanels und die QR-Codes. Alles andere kommt aus Tokens.
+- **`kbd`**-Hinweise sind 12px, unter der 13px-Untergrenze für Metaangaben.
+- **Pfeile in Linktexten** („← Zurück“, „× aufheben“) sind Textzeichen, keine Icons.

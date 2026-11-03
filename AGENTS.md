@@ -1,9 +1,9 @@
-# Working on OpenVerein
+# Arbeiten an OpenVerein
 
-- Behaviour is specified in `openspec/specs/`. Start every slice with `openspec new change <name>`; archive it after merge.
-- The UI only calls the public `/api/v1` API. Every new UI action needs an API route with a zod schema (it appears in OpenAPI automatically).
-- Money is integer cents. Legal dates are `date` columns kept as `YYYY-MM-DD` strings.
-- Never edit a shipped migration; add a new numbered file in `migrations/`.
-- Write audit events in the same transaction as the change (`src/server/audit.ts`).
-- UI copy is German and uses "Du". Styling uses tokens from `src/web/styles/tokens.css` only.
-- Commands: `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test`, `npm run test:e2e`.
+- Das Verhalten ist in `openspec/specs/` spezifiziert. Beginne jeden Slice mit `openspec new change <name>`; archiviere ihn nach dem Merge.
+- Die UI ruft nur die öffentliche API unter `/api/v1` auf. Jede neue UI-Aktion braucht eine API-Route mit zod-Schema (sie erscheint automatisch in OpenAPI).
+- Geld ist in ganzzahligen Cents. Rechtlich relevante Daten sind `date`-Spalten und werden als `YYYY-MM-DD`-Strings geführt.
+- Bearbeite nie eine ausgelieferte Migration; lege eine neue nummerierte Datei in `migrations/` an.
+- Schreibe Audit-Events in derselben Transaktion wie die Änderung (`src/server/audit.ts`).
+- UI-Texte sind deutsch und verwenden „Du“. Styling verwendet ausschließlich Tokens aus `src/web/styles/tokens.css`.
+- Befehle: `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test`, `npm run test:e2e`.

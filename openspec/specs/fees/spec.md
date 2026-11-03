@@ -1,19 +1,19 @@
 # fees Specification
 
 ## Purpose
-TBD - created by archiving change fee-schedule. Update Purpose after archive.
+TBD – entstanden durch Archivierung der Änderung fee-schedule. Purpose nach der Archivierung aktualisieren.
 ## Requirements
-### Requirement: Scheduled fee-run preview
-The system SHALL create at most one fee-run preview per month on the scheduled day, with the rights of the person who set up the schedule, and SHALL never post it without a confirmation.
+### Requirement: Geplante Vorschau des Beitragslaufs
+Das System MUSS (SHALL) am geplanten Tag höchstens eine Vorschau eines Beitragslaufs pro Monat erstellen, mit den Rechten der Person, die den Zeitplan eingerichtet hat, und DARF sie NICHT ohne Bestätigung buchen.
 
-#### Scenario: Monthly preview
-- **WHEN** the schedule is set to day 1 and the scheduler runs twice in the same month
-- **THEN** exactly one preview run exists and no invoice has been posted
+#### Scenario: Monatliche Vorschau
+- **WHEN** der Zeitplan auf Tag 1 steht und der Scheduler zweimal im selben Monat läuft
+- **THEN** existiert genau ein Vorschaulauf und es wurde keine Rechnung gebucht
 
-### Requirement: Age brackets
-The system SHALL bill the amount of the first age bracket that the member's age at the start of a period fits, else the version's amount, and an individual amount SHALL take precedence.
+### Requirement: Altersstufen
+Das System MUSS (SHALL) den Betrag der ersten Altersstufe abrechnen, zu der das Alter des Mitglieds zu Beginn eines Zeitraums passt, andernfalls den Betrag der Beitragsversion; ein individueller Betrag MUSS Vorrang haben.
 
-#### Scenario: 18th birthday in March, monthly fee
-- **WHEN** a member born on 15.03.2008 is billed monthly from January 2026 with a bracket up to 17 years
-- **THEN** January to March use the bracket amount and April the adult amount
+#### Scenario: 18. Geburtstag im März, monatlicher Beitrag
+- **WHEN** ein am 15.03.2008 geborenes Mitglied ab Januar 2026 monatlich abgerechnet wird und eine Altersstufe bis 17 Jahre besteht
+- **THEN** gilt für Januar bis März der Betrag der Altersstufe und für April der Erwachsenenbetrag
 

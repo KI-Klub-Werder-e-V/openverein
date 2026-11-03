@@ -1,264 +1,264 @@
 # members Specification
 
 ## Purpose
-The members capability covers member records and their lifecycle, the shared address book for members and non-members, custom fields, households with payer and family discount, faceted member lists with saved views, CSV / XLSX export, bulk actions and duplicate detection (B M01, M02, M03, M05, M06, M07, M08, M09). Items that B rates "should" or "could" are marked as such in the requirement name; everything else is MVP behaviour.
+Die Capability members umfasst Mitgliedsdatensätze und ihren Lebenszyklus, das gemeinsame Adressbuch für Mitglieder und Nichtmitglieder, benutzerdefinierte Felder, Haushalte mit zahlender Person und Familienrabatt, facettierte Mitgliederlisten mit gespeicherten Ansichten, CSV-/XLSX-Export, Massenaktionen und Dublettenerkennung (B M01, M02, M03, M05, M06, M07, M08, M09). Punkte, die B mit „sollte“ oder „könnte“ bewertet, sind im Namen der Anforderung entsprechend gekennzeichnet; alles andere ist MVP-Verhalten.
 ## Requirements
-### Requirement: Member records and numbers
-The system SHALL link each member 1:1 to a person, never delete the person when a membership ends, and generate a member number unique per organisation from a configurable pattern (for example `M-{YYYY}-{seq:4}`) that only users with the `members.number.edit` permission may change, and only before first save.
+### Requirement: Mitgliedsdatensätze und Mitgliedsnummern
+Das System MUSS (SHALL) jedes Mitglied 1:1 mit einer Person verknüpfen, die Person beim Ende einer Mitgliedschaft nie löschen und pro Organisation eine eindeutige Mitgliedsnummer nach einem konfigurierbaren Muster (zum Beispiel `M-{YYYY}-{seq:4}`) erzeugen, die nur Benutzer:innen mit der Berechtigung `members.number.edit` ändern dürfen, und zwar nur vor dem ersten Speichern.
 
-#### Scenario: Number from pattern
-- **WHEN** the first member of 2027 is saved with pattern `M-{YYYY}-{seq:4}`
-- **THEN** the member gets number `M-2027-0001`
+#### Scenario: Nummer aus Muster
+- **WHEN** das erste Mitglied des Jahres 2027 mit dem Muster `M-{YYYY}-{seq:4}` gespeichert wird
+- **THEN** erhält das Mitglied die Nummer `M-2027-0001`
 
-#### Scenario: Person survives membership
-- **WHEN** a membership is removed
-- **THEN** the linked person remains in the address book
+#### Scenario: Person überdauert die Mitgliedschaft
+- **WHEN** eine Mitgliedschaft entfernt wird
+- **THEN** bleibt die verknüpfte Person im Adressbuch erhalten
 
-### Requirement: Member lifecycle statuses
-The system SHALL use the statuses `applicant`, `future`, `active`, `resigned`, `former` and `rejected`, change them only through explicit dated actions that write an audit event, move `future` to `active` and `resigned` to `former` by a nightly job on the respective dates, and show a status timeline with dates and acting admin on the profile.
+### Requirement: Status im Mitgliedslebenszyklus
+Das System MUSS (SHALL) die Status `applicant`, `future`, `active`, `resigned`, `former` und `rejected` verwenden, sie nur über ausdrückliche, datierte Aktionen ändern, die ein Audit-Ereignis schreiben, `future` zu `active` und `resigned` zu `former` per nächtlichem Job am jeweiligen Datum überführen und im Profil eine Status-Zeitleiste mit Datum und handelndem Admin anzeigen.
 
-#### Scenario: Future member activates
-- **WHEN** the join date of a `future` member is reached
-- **THEN** the nightly job sets the status to `active` and the timeline shows the change
+#### Scenario: Zukünftiges Mitglied wird aktiv
+- **WHEN** das Eintrittsdatum eines Mitglieds mit Status `future` erreicht ist
+- **THEN** setzt der nächtliche Job den Status auf `active` und die Zeitleiste zeigt die Änderung
 
-#### Scenario: No free status edit
-- **WHEN** a user tries to set the status field directly through an update
-- **THEN** the system rejects it and points to the transition actions
+#### Scenario: Keine freie Statusbearbeitung
+- **WHEN** eine Benutzerin oder ein Benutzer versucht, das Statusfeld direkt per Update zu setzen
+- **THEN** lehnt das System dies ab und verweist auf die Übergangsaktionen
 
-### Requirement: Notice and exit dates
-The system SHALL require an exit date whenever a notice date is set, propose the exit date from the organisation's notice rule (for example end of quarter with 6 weeks' notice), warn when the entered exit date breaks the rule, reject an exit date before the join date, and take the exit reason from a configurable list.
+### Requirement: Kündigungs- und Austrittsdatum
+Das System MUSS (SHALL) ein Austrittsdatum verlangen, sobald ein Kündigungsdatum gesetzt ist, das Austrittsdatum aus der Kündigungsregel des Vereins vorschlagen (zum Beispiel Quartalsende mit 6 Wochen Frist), warnen, wenn das eingegebene Austrittsdatum gegen die Regel verstößt, ein Austrittsdatum vor dem Eintrittsdatum ablehnen und den Austrittsgrund aus einer konfigurierbaren Liste übernehmen.
 
-#### Scenario: Proposed exit date
-- **WHEN** notice is received on 10 May under the rule "end of quarter, 6 weeks' notice"
-- **THEN** the proposed exit date is 30 June
+#### Scenario: Vorgeschlagenes Austrittsdatum
+- **WHEN** eine Kündigung am 10. Mai unter der Regel „Quartalsende, 6 Wochen Frist“ eingeht
+- **THEN** ist das vorgeschlagene Austrittsdatum der 30. Juni
 
-#### Scenario: Exit before join
-- **WHEN** an exit date earlier than the join date is entered
-- **THEN** the system rejects it
+#### Scenario: Austritt vor Eintritt
+- **WHEN** ein Austrittsdatum vor dem Eintrittsdatum eingegeben wird
+- **THEN** lehnt das System es ab
 
-### Requirement: Former members hidden by default
-The system SHALL hide `former` members from every list, filter result, export and mail recipient picker by default and show them only through a visible "include former members" toggle whose state is saved with the view.
+### Requirement: Ehemalige Mitglieder standardmäßig ausgeblendet
+Das System MUSS (SHALL) Mitglieder mit Status `former` standardmäßig in jeder Liste, jedem Filterergebnis, jedem Export und jeder E-Mail-Empfängerauswahl ausblenden und sie nur über einen sichtbaren Schalter „ehemalige Mitglieder einbeziehen“ anzeigen, dessen Zustand mit der Ansicht gespeichert wird.
 
-#### Scenario: Default list
-- **WHEN** an admin opens the member list without changing filters
-- **THEN** no former member is listed
+#### Scenario: Standardliste
+- **WHEN** ein Admin die Mitgliederliste öffnet, ohne Filter zu ändern
+- **THEN** wird kein ehemaliges Mitglied aufgeführt
 
-#### Scenario: Toggle saved
-- **WHEN** a view is saved with "include former members" switched on
-- **THEN** reopening the view shows former members
+#### Scenario: Schalter gespeichert
+- **WHEN** eine Ansicht mit eingeschaltetem „ehemalige Mitglieder einbeziehen“ gespeichert wird
+- **THEN** zeigt das erneute Öffnen der Ansicht ehemalige Mitglieder
 
-### Requirement: Profile data-quality warnings (should)
-The system SHALL show warnings in the member profile header for: no payment method, no mandate where the method is direct debit, no contact data, and user has admin access.
+### Requirement: Warnungen zur Datenqualität im Profil (sollte)
+Das System MUSS (SHALL) im Kopfbereich des Mitgliedsprofils Warnungen anzeigen für: keine Zahlungsart, kein Mandat bei Zahlungsart Lastschrift, keine Kontaktdaten sowie Admin-Zugang des Mitglieds.
 
-#### Scenario: Missing mandate warning
-- **WHEN** a member pays by direct debit and has no active mandate
-- **THEN** the profile header shows the warning "no mandate"
+#### Scenario: Warnung bei fehlendem Mandat
+- **WHEN** ein Mitglied per Lastschrift zahlt und kein aktives Mandat hat
+- **THEN** zeigt der Profilkopf die Warnung „kein Mandat“
 
-### Requirement: Shared address book
-The system SHALL keep one person record for natural persons and organisations (company name, contact person) with several addresses (private, business, invoice), e-mails with one preferred, phones and a preferred channel (`email`, `letter`, `none`); non-members SHALL be convertible into applicants or members without re-entering data; address groups SHALL hold members and non-members; DATEV debtor and creditor numbers SHALL be auto-assigned on first use from configurable ranges (default debtors 10000–69999, creditors 70000–99999); archiving SHALL remove a person from pickers, and anonymising SHALL only be possible through the GDPR tooling.
+### Requirement: Gemeinsames Adressbuch
+Das System MUSS (SHALL) einen Personendatensatz für natürliche Personen und Organisationen (Firmenname, Ansprechperson) führen, mit mehreren Adressen (privat, geschäftlich, Rechnung), E-Mails mit einer bevorzugten, Telefonnummern und bevorzugtem Kanal (`email`, `letter`, `none`); Nichtmitglieder MÜSSEN ohne erneute Dateneingabe in Antragstellende oder Mitglieder umwandelbar sein; Adressgruppen MÜSSEN Mitglieder und Nichtmitglieder enthalten können; DATEV-Debitoren- und Kreditorennummern MÜSSEN bei erster Verwendung aus konfigurierbaren Bereichen vergeben werden (Standard Debitoren 10000–69999, Kreditoren 70000–99999); Archivieren MUSS eine Person aus Auswahllisten entfernen, Anonymisieren DARF nur über die DSGVO-Werkzeuge möglich sein.
 
-#### Scenario: Convert sponsor to member
-- **WHEN** an admin converts a non-member sponsor into an applicant
-- **THEN** the existing person data is reused and a member record is added
+#### Scenario: Förderer in Mitglied umwandeln
+- **WHEN** ein Admin ein förderndes Nichtmitglied in eine:n Antragsteller:in umwandelt
+- **THEN** werden die vorhandenen Personendaten wiederverwendet und ein Mitgliedsdatensatz wird ergänzt
 
-#### Scenario: Debtor number on first invoice
-- **WHEN** the first invoice is issued to a person without a debtor number
-- **THEN** the next free number in the debtor range is assigned
+#### Scenario: Debitorennummer bei erster Rechnung
+- **WHEN** die erste Rechnung an eine Person ohne Debitorennummer ausgestellt wird
+- **THEN** wird die nächste freie Nummer im Debitorenbereich vergeben
 
-### Requirement: Address country validation (should)
-The system SHALL store a country code (DE, AT, CH, other), state and address supplement per address and validate the postal code by country: 5 digits for DE, 4 digits for AT and CH, free text otherwise.
+### Requirement: Länderprüfung von Adressen (sollte)
+Das System MUSS (SHALL) je Adresse einen Ländercode (DE, AT, CH, sonstige), Bundesland und Adresszusatz speichern und die Postleitzahl je Land prüfen: 5 Ziffern für DE, 4 Ziffern für AT und CH, sonst Freitext.
 
-#### Scenario: Austrian postal code
-- **WHEN** an address with country AT and postal code `1010` is saved
-- **THEN** it is accepted, while `10115` is rejected for AT
+#### Scenario: Österreichische Postleitzahl
+- **WHEN** eine Adresse mit Land AT und Postleitzahl `1010` gespeichert wird
+- **THEN** wird sie akzeptiert, während `10115` für AT abgelehnt wird
 
-### Requirement: Custom fields
-The system SHALL let admins define custom fields on persons or members of type text, multiline text, number, date, checkbox, select, multiselect or file, with label, i18n key, tab, position, required flag, options and the flags `visible_to_member`, `editable_by_member`, `needs_approval`, `sensitive` and `gdpr_relevant`; custom fields SHALL be usable as list filters, columns, export columns, import targets and mail placeholders; a field's type SHALL be fixed once values exist; archiving SHALL hide a field and keep its values; deleting a field with values SHALL require typing its name and write an audit event.
+### Requirement: Benutzerdefinierte Felder
+Das System MUSS (SHALL) Admins benutzerdefinierte Felder an Personen oder Mitgliedern definieren lassen, vom Typ Text, mehrzeiliger Text, Zahl, Datum, Checkbox, Auswahl, Mehrfachauswahl oder Datei, mit Bezeichnung, i18n-Schlüssel, Reiter, Position, Pflichtkennzeichen, Optionen und den Flags `visible_to_member`, `editable_by_member`, `needs_approval`, `sensitive` und `gdpr_relevant`; sie MÜSSEN als Listenfilter, Spalten, Exportspalten, Importziele und E-Mail-Platzhalter nutzbar sein; der Typ ist fest, sobald Werte existieren; Archivieren blendet ein Feld aus und behält die Werte; Löschen eines Felds mit Werten verlangt die Eingabe seines Namens und schreibt ein Audit-Ereignis.
 
-#### Scenario: Type locked
-- **WHEN** an admin changes the type of a field that has values
-- **THEN** the system refuses and suggests archiving it and creating a new field
+#### Scenario: Typ gesperrt
+- **WHEN** ein Admin den Typ eines Felds ändert, das Werte hat
+- **THEN** verweigert das System dies und schlägt vor, das Feld zu archivieren und ein neues anzulegen
 
-#### Scenario: Placeholder
-- **WHEN** a mail uses `{{custom.shirt_size}}`
-- **THEN** each recipient's value is inserted, unless the sender may not see that field
+#### Scenario: Platzhalter
+- **WHEN** eine E-Mail `{{custom.shirt_size}}` verwendet
+- **THEN** wird der Wert der jeweiligen Empfänger:in eingesetzt, sofern die absendende Person dieses Feld sehen darf
 
-### Requirement: Households with payer and family discount
-The system SHALL model households with a name, a payer person who need not be a member, an optional billing address override and an effective-dated discount rule (none, percentage off from the 2nd or 3rd member, fixed family cap per period, children free from the n-th child); household members SHALL be invoiced on one invoice to the payer with one line per member and fee, collected with the payer's mandate, and the fee-run preview SHALL show the discount as its own line naming the rule; removing the payer SHALL require choosing a new payer first.
+### Requirement: Haushalte mit zahlender Person und Familienrabatt
+Das System MUSS (SHALL) Haushalte abbilden mit Name, einer zahlenden Person, die kein Mitglied sein muss, optional abweichender Rechnungsadresse und einer zeitlich gültigen Rabattregel (keine, Prozentnachlass ab dem 2. oder 3. Mitglied, fester Familienhöchstbetrag je Zeitraum, Kinder frei ab dem n-ten Kind); Haushaltsmitglieder MÜSSEN auf einer Rechnung an die zahlende Person abgerechnet werden, mit einer Position je Mitglied und Beitrag, eingezogen mit deren Mandat; die Vorschau des Beitragslaufs MUSS den Rabatt als eigene Position mit Regelnamen zeigen; vor dem Entfernen der zahlenden Person MUSS eine neue gewählt werden.
 
-#### Scenario: One invoice per household
-- **WHEN** a fee run bills a household of three members
-- **THEN** one invoice to the payer is created with one line per member and a discount line
+#### Scenario: Eine Rechnung pro Haushalt
+- **WHEN** ein Beitragslauf einen Haushalt mit drei Mitgliedern abrechnet
+- **THEN** wird eine Rechnung an die zahlende Person mit einer Position je Mitglied und einer Rabattposition erstellt
 
-#### Scenario: Payer removal
-- **WHEN** an admin removes the payer without naming a new one
-- **THEN** the system refuses
+#### Scenario: Entfernen der zahlenden Person
+- **WHEN** ein Admin die zahlende Person entfernt, ohne eine neue zu benennen
+- **THEN** verweigert das System dies
 
-### Requirement: Member lists with faceted search and saved views
-The system SHALL offer global search over name, member number, e-mail and city with typo tolerance, facets (status, group on a date, age range, join and exit date ranges, payment method, mandate state, household, open balance above 0, custom fields) that combine with AND across facets and OR within one facet, a keyboard-operable column picker with per-user width and sort, and saved views that are private or shared with a role; a shared view SHALL omit columns the viewer may not see; IBANs SHALL NOT be searchable by fragment, only by exact full IBAN for users with the IBAN right; the first page of 2,000 members with 10 columns SHALL render in under 500 ms server time.
+### Requirement: Mitgliederlisten mit facettierter Suche und gespeicherten Ansichten
+Das System MUSS (SHALL) eine tippfehlertolerante globale Suche über Name, Mitgliedsnummer, E-Mail und Ort bieten, Facetten (Status, Gruppe zu einem Datum, Altersbereich, Ein- und Austrittszeitraum, Zahlungsart, Mandatsstatus, Haushalt, offener Saldo über 0, benutzerdefinierte Felder), die über Facetten mit UND und innerhalb einer Facette mit ODER verknüpft werden, eine per Tastatur bedienbare Spaltenauswahl mit Breite und Sortierung je Benutzer:in sowie private oder mit einer Rolle geteilte gespeicherte Ansichten; eine geteilte Ansicht MUSS Spalten weglassen, die die betrachtende Person nicht sehen darf; IBANs DÜRFEN NICHT per Fragment durchsuchbar sein, nur per exakter vollständiger IBAN für Benutzer:innen mit IBAN-Recht; die erste Seite von 2.000 Mitgliedern mit 10 Spalten MUSS in unter 500 ms Serverzeit rendern.
 
-#### Scenario: Shared view respects permissions
-- **WHEN** a trainer opens a shared view that contains an IBAN column
-- **THEN** the column is omitted for the trainer
+#### Scenario: Geteilte Ansicht beachtet Berechtigungen
+- **WHEN** ein:e Trainer:in eine geteilte Ansicht mit einer IBAN-Spalte öffnet
+- **THEN** wird die Spalte für sie weggelassen
 
-#### Scenario: IBAN fragment search
-- **WHEN** a user searches for `DE89 3704`
-- **THEN** no member is found through the IBAN
+#### Scenario: Suche nach IBAN-Fragment
+- **WHEN** eine Benutzerin nach `DE89 3704` sucht
+- **THEN** wird über die IBAN kein Mitglied gefunden
 
-### Requirement: CSV and XLSX export of filtered lists
-The system SHALL export exactly the current filter, columns and sort as CSV (UTF-8 with BOM, `;` separator, optional German decimal comma) or XLSX (typed dates and numbers), omit restricted fields from the offered columns, escape CSV cells starting with `=`, `+`, `-` or `@`, run exports over 1,000 rows as background jobs with the file kept for 7 days, and audit-log every export with filter, columns and row count but not the data.
+### Requirement: CSV- und XLSX-Export gefilterter Listen
+Das System MUSS (SHALL) genau den aktuellen Filter, die Spalten und die Sortierung als CSV (UTF-8 mit BOM, Trennzeichen `;`, optional deutsches Dezimalkomma) oder XLSX (typisierte Daten und Zahlen) exportieren, eingeschränkte Felder nicht als Spalten anbieten, CSV-Zellen, die mit `=`, `+`, `-` oder `@` beginnen, maskieren, Exporte über 1.000 Zeilen als Hintergrundjobs ausführen und die Datei 7 Tage aufbewahren sowie jeden Export mit Filter, Spalten und Zeilenzahl, aber ohne die Daten, im Audit-Protokoll festhalten.
 
-#### Scenario: Formula injection
-- **WHEN** a name field contains `=HYPERLINK(...)`
-- **THEN** the exported CSV cell is escaped so spreadsheet software shows it as text
+#### Scenario: Formel-Injektion
+- **WHEN** ein Namensfeld `=HYPERLINK(...)` enthält
+- **THEN** wird die exportierte CSV-Zelle so maskiert, dass Tabellenkalkulationen sie als Text anzeigen
 
-#### Scenario: Large export
-- **WHEN** an export covers 1,500 rows
-- **THEN** it runs as a background job and the file is deleted after 7 days
+#### Scenario: Großer Export
+- **WHEN** ein Export 1.500 Zeilen umfasst
+- **THEN** läuft er als Hintergrundjob und die Datei wird nach 7 Tagen gelöscht
 
-### Requirement: Bulk actions on filtered lists
-The system SHALL apply actions (send e-mail or letter, create manual invoice, add to or end group membership, status transition, export, accept or reject applications, duplicate check, GDPR data sheet, portal invitations) to all filter results across pages, the current page or hand-picked rows; it SHALL show a confirmation with the count and a sample of 5 records, freeze the selection as an id snapshot at confirmation, check permissions per record and report skipped records, run actions over 100 records as background jobs with a per-record result (succeeded, skipped with reason, failed), and audit-log every bulk action with its id snapshot.
+### Requirement: Massenaktionen auf gefilterten Listen
+Das System MUSS (SHALL) Aktionen (E-Mail oder Brief senden, manuelle Rechnung erstellen, Gruppenmitgliedschaft hinzufügen oder beenden, Statusübergang, Export, Anträge annehmen oder ablehnen, Dublettenprüfung, DSGVO-Datenblatt, Portaleinladungen) auf alle Filterergebnisse seitenübergreifend, die aktuelle Seite oder ausgewählte Zeilen anwenden; es MUSS eine Bestätigung mit Anzahl und 5 Beispieldatensätzen zeigen, die Auswahl bei Bestätigung als ID-Snapshot einfrieren, Berechtigungen je Datensatz prüfen und übersprungene melden, Aktionen über 100 Datensätze als Hintergrundjobs mit Ergebnis je Datensatz (erfolgreich, übersprungen mit Grund, fehlgeschlagen) ausführen und jede Massenaktion mit ID-Snapshot protokollieren.
 
-#### Scenario: Out-of-scope records skipped
-- **WHEN** a division lead runs a bulk group change on a selection that includes members outside their scope
-- **THEN** those members are skipped and listed with the reason
+#### Scenario: Datensätze außerhalb des Zuständigkeitsbereichs übersprungen
+- **WHEN** eine Abteilungsleitung einen Massen-Gruppenwechsel auf eine Auswahl anwendet, die Mitglieder außerhalb ihres Zuständigkeitsbereichs enthält
+- **THEN** werden diese Mitglieder übersprungen und mit Grund aufgeführt
 
-#### Scenario: Selection frozen
-- **WHEN** a member matching the filter is added after the bulk action was confirmed
-- **THEN** that member is not processed
+#### Scenario: Auswahl eingefroren
+- **WHEN** ein zum Filter passendes Mitglied hinzukommt, nachdem die Massenaktion bestätigt wurde
+- **THEN** wird dieses Mitglied nicht verarbeitet
 
-### Requirement: Duplicate detection
-The system SHALL find likely duplicate persons on import and on demand with a score from name similarity, date of birth, e-mail, IBAN and address, a threshold adjustable from 60 to 100 %, and a result list of pairs with the matching fields highlighted; the admin SHALL resolve a pair by archiving the duplicate that has no financial records, and "not a duplicate" decisions SHALL be remembered.
+### Requirement: Dublettenerkennung
+Das System MUSS (SHALL) beim Import und auf Anforderung wahrscheinliche Personen-Dubletten finden, mit einer Bewertung aus Namensähnlichkeit, Geburtsdatum, E-Mail, IBAN und Adresse, einem zwischen 60 und 100 % einstellbaren Schwellenwert und einer Ergebnisliste von Paaren mit hervorgehobenen übereinstimmenden Feldern; der Admin MUSS ein Paar lösen, indem die Dublette ohne Finanzdaten archiviert wird, und Entscheidungen „keine Dublette“ MÜSSEN gespeichert werden.
 
-#### Scenario: Pair dismissed
-- **WHEN** an admin marks a pair as "not a duplicate"
-- **THEN** the pair is not proposed again
+#### Scenario: Paar verworfen
+- **WHEN** ein Admin ein Paar als „keine Dublette“ markiert
+- **THEN** wird das Paar nicht erneut vorgeschlagen
 
-#### Scenario: Threshold
-- **WHEN** the threshold is set to 90 %
-- **THEN** only pairs scoring 90 % or more are listed
+#### Scenario: Schwellenwert
+- **WHEN** der Schwellenwert auf 90 % gesetzt ist
+- **THEN** werden nur Paare mit einer Bewertung von 90 % oder mehr aufgeführt
 
-### Requirement: Member search tolerates typos and umlauts
-The system SHALL find members by any part of first or last name, company, member number, town or (when visible to the user) e-mail, ignoring case and accents (`muller` finds `Müller`, `yilmaz` finds `Yılmaz`), tolerate small typos in names (`schmitt` finds `Schmidt`), and treat `%` and `_` in the query as literal characters.
+### Requirement: Mitgliedersuche toleriert Tippfehler und Umlaute
+Das System MUSS (SHALL) Mitglieder über jeden Teil von Vor- oder Nachname, Firma, Mitgliedsnummer, Ort oder (wenn für die Benutzer:in sichtbar) E-Mail finden, dabei Groß-/Kleinschreibung und Akzente ignorieren (`muller` findet `Müller`, `yilmaz` findet `Yılmaz`), kleine Tippfehler in Namen tolerieren (`schmitt` findet `Schmidt`) und `%` und `_` in der Suchanfrage als literale Zeichen behandeln.
 
-#### Scenario: Umlaut-free search
-- **WHEN** an admin searches for `muller`
-- **THEN** the member `Müller, Jörg` is listed
+#### Scenario: Suche ohne Umlaut
+- **WHEN** ein Admin nach `muller` sucht
+- **THEN** wird das Mitglied `Müller, Jörg` aufgeführt
 
-#### Scenario: Wildcards are literal
-- **WHEN** an admin searches for `%`
-- **THEN** no member is listed unless a name contains a percent sign
+#### Scenario: Platzhalterzeichen sind literal
+- **WHEN** ein Admin nach `%` sucht
+- **THEN** wird kein Mitglied aufgeführt, es sei denn, ein Name enthält ein Prozentzeichen
 
-### Requirement: Keyboard-first member list
-The system SHALL let users work the member list without a mouse: `/` focuses search, `n` opens the create form, arrow keys (or `j`/`k`) move between rows, Enter opens the record in a side sheet, Space selects a row for bulk actions, and the command palette finds members by name.
+### Requirement: Tastaturorientierte Mitgliederliste
+Das System MUSS (SHALL) die Mitgliederliste ohne Maus bedienbar machen: `/` fokussiert die Suche, `n` öffnet das Anlageformular, Pfeiltasten (oder `j`/`k`) wechseln zwischen Zeilen, Enter öffnet den Datensatz in einem Seitenpanel, die Leertaste wählt eine Zeile für Massenaktionen aus, und die Befehlspalette findet Mitglieder nach Namen.
 
-#### Scenario: Open a member by keyboard
-- **WHEN** a user presses `/`, types a name, tabs into the list and presses Enter on a row
-- **THEN** the member opens in a side sheet over the list
+#### Scenario: Mitglied per Tastatur öffnen
+- **WHEN** eine Benutzerin `/` drückt, einen Namen tippt, per Tab in die Liste wechselt und auf einer Zeile Enter drückt
+- **THEN** öffnet sich das Mitglied in einem Seitenpanel über der Liste
 
-### Requirement: Sensitive custom fields stay with club-wide readers
-The system SHALL hide sensitive custom fields and their values from users whose member access is limited to groups, SHALL never offer them as mail placeholders, and SHALL record changes to them in the audit log without the values.
+### Requirement: Sensible benutzerdefinierte Felder nur für vereinsweit Lesende
+Das System MUSS (SHALL) sensible benutzerdefinierte Felder und ihre Werte vor Benutzer:innen verbergen, deren Mitgliederzugriff auf Gruppen beschränkt ist, DARF sie NICHT als E-Mail-Platzhalter anbieten und MUSS Änderungen daran ohne die Werte im Audit-Protokoll festhalten.
 
-#### Scenario: Trainer opens a profile
-- **WHEN** a trainer limited to the tennis group opens a member with an allergy noted in a sensitive field
-- **THEN** neither the field nor its value is shown or returned by the API
+#### Scenario: Trainer öffnet ein Profil
+- **WHEN** ein auf die Tennisgruppe beschränkter Trainer ein Mitglied öffnet, bei dem in einem sensiblen Feld eine Allergie vermerkt ist
+- **THEN** wird weder das Feld noch sein Wert angezeigt oder von der API zurückgegeben
 
-### Requirement: Household discount recomputed from included lines
-The system SHALL compute a household's discount at posting from the lines that are actually billed, so excluding a preview line changes the discount accordingly.
+### Requirement: Haushaltsrabatt aus einbezogenen Positionen neu berechnet
+Das System MUSS (SHALL) den Rabatt eines Haushalts beim Buchen aus den tatsächlich abgerechneten Positionen berechnen, sodass das Ausschließen einer Vorschauposition den Rabatt entsprechend ändert.
 
-#### Scenario: Excluded child fee
-- **WHEN** the preview of a household with "50 % from the 2nd member" is posted with one child's fee excluded
-- **THEN** the discount line covers only the remaining discounted fees
+#### Scenario: Ausgeschlossener Kinderbeitrag
+- **WHEN** die Vorschau eines Haushalts mit „50 % ab dem 2. Mitglied“ gebucht wird, wobei der Beitrag eines Kindes ausgeschlossen ist
+- **THEN** umfasst die Rabattposition nur die verbleibenden rabattierten Beiträge
 
-### Requirement: German spellings match in duplicate detection
-The system SHALL treat ü/ue, ö/oe, ä/ae and ß/ss as equal when comparing names for duplicates.
+### Requirement: Deutsche Schreibweisen gelten in der Dublettenerkennung als gleich
+Das System MUSS (SHALL) ü/ue, ö/oe, ä/ae und ß/ss beim Namensvergleich für Dubletten als gleich behandeln.
 
-#### Scenario: Müller and Mueller
-- **WHEN** "Jürgen Müller" and "Juergen Mueller" share birth date, e-mail and address
-- **THEN** the pair scores at least 90 %
+#### Scenario: Müller und Mueller
+- **WHEN** „Jürgen Müller“ und „Juergen Mueller“ Geburtsdatum, E-Mail und Adresse teilen
+- **THEN** erreicht das Paar mindestens 90 %
 
-### Requirement: Views store list parameters only
-The system SHALL store a saved view as the list's parameters and SHALL evaluate every list request under the viewer's own permissions, so a shared view shows each viewer only what they may see.
+### Requirement: Ansichten speichern nur Listenparameter
+Das System MUSS (SHALL) eine gespeicherte Ansicht als Parameter der Liste speichern und jede Listenanfrage unter den eigenen Berechtigungen der betrachtenden Person auswerten, sodass eine geteilte Ansicht jeder Person nur zeigt, was sie sehen darf.
 
-#### Scenario: Trainer opens a shared view
-- **WHEN** a trainer limited to the tennis group opens a view shared with the trainer role that filters on members aged 10 to 14
-- **THEN** the list contains only tennis members aged 10 to 14
+#### Scenario: Trainer öffnet eine geteilte Ansicht
+- **WHEN** ein auf die Tennisgruppe beschränkter Trainer eine mit der Trainerrolle geteilte Ansicht öffnet, die nach Mitgliedern im Alter von 10 bis 14 filtert
+- **THEN** enthält die Liste nur Tennismitglieder im Alter von 10 bis 14
 
-#### Scenario: Shared view with a facet the viewer may not use
-- **WHEN** a trainer without invoice rights opens a shared view that filters on open balances
-- **THEN** the request is refused with an explanation, because even the filter would reveal who owes money
+#### Scenario: Geteilte Ansicht mit einer Facette, die die betrachtende Person nicht nutzen darf
+- **WHEN** ein Trainer ohne Rechnungsrechte eine geteilte Ansicht öffnet, die nach offenen Salden filtert
+- **THEN** wird die Anfrage mit einer Erklärung abgelehnt, weil schon der Filter offenlegen würde, wer Geld schuldet
 
-### Requirement: Bulk actions over all filter results
-The system SHALL let a user select all members matching the current filter, confirm a bulk action after seeing the count and five sample names, and run actions over more than 100 members as a background job with a per-record result.
+### Requirement: Massenaktionen über alle Filterergebnisse
+Das System MUSS (SHALL) Benutzer:innen alle zum aktuellen Filter passenden Mitglieder auswählen lassen, eine Massenaktion nach Anzeige der Anzahl und fünf Beispielnamen bestätigen lassen und Aktionen über mehr als 100 Mitglieder als Hintergrundjob mit Ergebnis je Datensatz ausführen.
 
-#### Scenario: Large selection
-- **WHEN** an admin adds 101 filtered members to a group
-- **THEN** the API answers 202 with a job, and the finished job reports 101 succeeded and none skipped
+#### Scenario: Große Auswahl
+- **WHEN** ein Admin 101 gefilterte Mitglieder einer Gruppe hinzufügt
+- **THEN** antwortet die API mit 202 und einem Job, und der abgeschlossene Job meldet 101 erfolgreich und keine übersprungen
 
-### Requirement: Annual census for the sports federation
-The system SHALL report the members on 1 January of a chosen year by age bracket and gender, for the whole club and per division, using join and exit dates rather than today's status.
+### Requirement: Jährliche Bestandserhebung für den Sportbund
+Das System MUSS (SHALL) die Mitglieder zum 1. Januar eines gewählten Jahres nach Altersstufe und Geschlecht melden, für den ganzen Verein und je Abteilung, anhand von Ein- und Austrittsdatum statt des heutigen Status.
 
-#### Scenario: Member who left last year
-- **WHEN** a member left on 30 June of the previous year
-- **THEN** they are not counted in the census for 1 January of this year
+#### Scenario: Im Vorjahr ausgetretenes Mitglied
+- **WHEN** ein Mitglied am 30. Juni des Vorjahres ausgetreten ist
+- **THEN** wird es in der Bestandserhebung zum 1. Januar dieses Jahres nicht gezählt
 
-### Requirement: Honours lists
-The system SHALL list for a chosen year the current members' membership anniversaries (from 10 years, every 5 years) and round birthdays, and offer an e-mail to all listed members.
+### Requirement: Ehrungslisten
+Das System MUSS (SHALL) für ein gewähltes Jahr die Mitgliedschaftsjubiläen der aktuellen Mitglieder (ab 10 Jahren, alle 5 Jahre) und runde Geburtstage auflisten und eine E-Mail an alle aufgeführten Mitglieder anbieten.
 
-#### Scenario: 25 years
-- **WHEN** a member joined on 1 May 2002
-- **THEN** the 2027 list shows them on 01.05. with 25 years of membership
+#### Scenario: 25 Jahre
+- **WHEN** ein Mitglied am 1. Mai 2002 eingetreten ist
+- **THEN** zeigt die Liste 2027 es am 01.05. mit 25 Jahren Mitgliedschaft
 
-### Requirement: Printable lists and vCards
-The system SHALL export the current filtered member list as a printable PDF and as vCard 4.0, leaving out fields the user's roles restrict.
+### Requirement: Druckbare Listen und vCards
+Das System MUSS (SHALL) die aktuell gefilterte Mitgliederliste als druckbares PDF und als vCard 4.0 exportieren und dabei Felder weglassen, die die Rollen der Benutzer:in einschränken.
 
-#### Scenario: Tax adviser exports vCards
-- **WHEN** a user whose role hides e-mail, phone and birth date exports vCards
-- **THEN** the cards contain names and addresses but no e-mail, phone or birthday
+#### Scenario: Steuerberater exportiert vCards
+- **WHEN** eine Benutzerin, deren Rolle E-Mail, Telefon und Geburtsdatum verbirgt, vCards exportiert
+- **THEN** enthalten die Karten Namen und Adressen, aber keine E-Mail, kein Telefon und keinen Geburtstag
 
-### Requirement: Work hours and substitute fee
-The system SHALL track logged work hours per member and year against a club rule and create one substitute-fee draft invoice per member and year for missing hours.
+### Requirement: Arbeitsstunden und Ersatzbeitrag
+Das System MUSS (SHALL) geleistete Arbeitsstunden je Mitglied und Jahr gegen eine Vereinsregel erfassen und für fehlende Stunden einen Rechnungsentwurf über den Ersatzbeitrag je Mitglied und Jahr erstellen.
 
-#### Scenario: Missing hours
-- **WHEN** the rule asks 10 hours at 15 € and a member logged 7.5 hours
-- **THEN** the overview shows 2.5 hours open and 37,50 €, and settling creates one draft invoice of 37,50 €; settling again creates none
+#### Scenario: Fehlende Stunden
+- **WHEN** die Regel 10 Stunden zu 15 € verlangt und ein Mitglied 7,5 Stunden geleistet hat
+- **THEN** zeigt die Übersicht 2,5 offene Stunden und 37,50 €, und das Abrechnen erstellt einen Rechnungsentwurf über 37,50 €; erneutes Abrechnen erstellt keinen
 
-### Requirement: Membership certificate
-The system SHALL produce a membership certificate PDF for a member, available to staff for members in their scope and to the member in the portal.
+### Requirement: Mitgliedsbescheinigung
+Das System MUSS (SHALL) für ein Mitglied eine Mitgliedsbescheinigung als PDF erzeugen, verfügbar für Mitarbeitende für Mitglieder in ihrem Zuständigkeitsbereich und für das Mitglied im Portal.
 
-#### Scenario: Member downloads their own
-- **WHEN** a member opens their portal card and downloads the certificate
-- **THEN** the PDF states the membership since the join date; another member's certificate is not available to them
+#### Scenario: Mitglied lädt die eigene herunter
+- **WHEN** ein Mitglied seine Portalkarte öffnet und die Bescheinigung herunterlädt
+- **THEN** nennt das PDF die Mitgliedschaft seit dem Eintrittsdatum; die Bescheinigung eines anderen Mitglieds ist für es nicht verfügbar
 
-### Requirement: Payment and access warnings
-The system SHALL warn on the member record about a missing payment method, direct debit without an active mandate, and an administration account with the member's e-mail address.
+### Requirement: Warnungen zu Zahlung und Zugang
+Das System MUSS (SHALL) im Mitgliedsdatensatz warnen bei fehlender Zahlungsart, Lastschrift ohne aktives Mandat und einem Verwaltungskonto mit der E-Mail-Adresse des Mitglieds.
 
-#### Scenario: Direct debit without mandate
-- **WHEN** a member pays by direct debit and neither they nor their household payer have an active mandate
-- **THEN** the member record shows "Zahlt per Lastschrift, aber es gibt kein gültiges Mandat."
+#### Scenario: Lastschrift ohne Mandat
+- **WHEN** ein Mitglied per Lastschrift zahlt und weder es selbst noch die zahlende Person seines Haushalts ein aktives Mandat hat
+- **THEN** zeigt der Mitgliedsdatensatz "Zahlt per Lastschrift, aber es gibt kein gültiges Mandat."
 
-### Requirement: Contact log
-The system SHALL keep a contact log per person, show private entries only to their author, protect it like the member note, and delete it when the person is anonymised.
+### Requirement: Kontaktprotokoll
+Das System MUSS (SHALL) je Person ein Kontaktprotokoll führen, private Einträge nur ihrer Autorin oder ihrem Autor zeigen, es wie die Mitgliedsnotiz schützen und es löschen, wenn die Person anonymisiert wird.
 
-#### Scenario: Private entry
-- **WHEN** a board member records a private entry
-- **THEN** other users with access to the member do not see it
+#### Scenario: Privater Eintrag
+- **WHEN** ein Vorstandsmitglied einen privaten Eintrag erfasst
+- **THEN** sehen andere Benutzer:innen mit Zugriff auf das Mitglied ihn nicht
 
-#### Scenario: Restricted role
-- **WHEN** a role without access to member notes opens the contact log
-- **THEN** the request is refused
+#### Scenario: Eingeschränkte Rolle
+- **WHEN** eine Rolle ohne Zugriff auf Mitgliedsnotizen das Kontaktprotokoll öffnet
+- **THEN** wird die Anfrage abgelehnt
 
-### Requirement: Greeting mails
-The system SHALL send a greeting mail on a member's birthday or honoured membership anniversary only when the club switched it on, and at most once per person, kind and year.
+### Requirement: Glückwunsch-E-Mails
+Das System MUSS (SHALL) eine Glückwunsch-E-Mail zum Geburtstag oder geehrten Mitgliedschaftsjubiläum eines Mitglieds nur senden, wenn der Verein dies eingeschaltet hat, und höchstens einmal je Person, Art und Jahr.
 
-#### Scenario: Run twice on the same day
-- **WHEN** the greeting run happens twice on a member's 30th birthday with round-birthday greetings on
-- **THEN** exactly one birthday mail is sent
+#### Scenario: Zweimaliger Lauf am selben Tag
+- **WHEN** der Glückwunschlauf am 30. Geburtstag eines Mitglieds bei eingeschalteten Glückwünschen zu runden Geburtstagen zweimal läuft
+- **THEN** wird genau eine Geburtstags-E-Mail gesendet
 
-### Requirement: Honours register
-The system SHALL record awarded honours with title, date and decision and list them per year.
+### Requirement: Ehrungsregister
+Das System MUSS (SHALL) verliehene Ehrungen mit Titel, Datum und Beschluss erfassen und sie je Jahr auflisten.
 
-#### Scenario: Silver pin
-- **WHEN** a member receives the "Silberne Ehrennadel" on 14.03.
-- **THEN** the year's honours list shows it with the member
+#### Scenario: Silberne Nadel
+- **WHEN** ein Mitglied am 14.03. die "Silberne Ehrennadel" erhält
+- **THEN** zeigt die Ehrungsliste des Jahres sie beim Mitglied
 

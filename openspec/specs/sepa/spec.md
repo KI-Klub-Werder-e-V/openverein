@@ -1,186 +1,186 @@
 # sepa Specification
 
 ## Purpose
-The sepa capability covers SEPA mandates, direct-debit collection runs (pain.008.001.08) with pre-notification and the double-debit guard, credit-transfer files (pain.001.001.09), bank statement import from CAMT.053 and CSV, payment matching with the reconciliation inbox, and return-debit handling (B M14, M15, M16, M17, M18, M19). All amounts are integer cents. Items that B rates "should" or "could" are marked as such in the requirement name; everything else is MVP behaviour.
+Die Capability sepa umfasst SEPA-Mandate, Lastschrift-Einzugsläufe (pain.008.001.08) mit Vorabankündigung (Pre-Notification) und Schutz vor Doppeleinzug, Überweisungsdateien (pain.001.001.09), den Import von Kontoauszügen aus CAMT.053 und CSV, die Zuordnung von Zahlungen mit dem Abgleich-Posteingang sowie die Bearbeitung von Rücklastschriften (B M14, M15, M16, M17, M18, M19). Alle Beträge sind ganzzahlige Cent. Punkte, die B mit „sollte“ oder „könnte“ bewertet, sind im Namen der Anforderung entsprechend gekennzeichnet; alles andere ist MVP-Verhalten.
 ## Requirements
-### Requirement: Mandate records
-The system SHALL store each SEPA mandate as its own record with reference (at most 35 characters from the SEPA character set, unique per creditor ID, generated from a pattern such as `{member_no}-{seq}` or entered, imported references kept unchanged), signature date, debtor person, account holder name, IBAN checked by mod-97, optional BIC derived from the Bundesbank BLZ file for German IBANs, scheme (CORE or B2B), type (recurrent or one-off) and evidence file, and SHALL render a pre-filled mandate form as PDF.
+### Requirement: Mandatsdatensätze
+Das System MUSS (SHALL) jedes SEPA-Mandat als eigenen Datensatz speichern mit Referenz (höchstens 35 Zeichen aus dem SEPA-Zeichensatz, eindeutig pro Gläubiger-ID, nach einem Muster wie `{member_no}-{seq}` erzeugt oder eingegeben, importierte Referenzen unverändert), Unterschriftsdatum, zahlungspflichtiger Person, Name des Kontoinhabers, per Mod-97 geprüfter IBAN, optionaler BIC (bei deutschen IBANs aus der BLZ-Datei der Bundesbank abgeleitet), Verfahren (CORE oder B2B), Typ (wiederkehrend oder einmalig) und Nachweisdatei, und MUSS ein vorausgefülltes Mandatsformular als PDF erzeugen.
 
-#### Scenario: Invalid IBAN
-- **WHEN** an IBAN with a wrong check digit is entered
-- **THEN** the mandate is rejected
+#### Scenario: Ungültige IBAN
+- **WHEN** eine IBAN mit falscher Prüfziffer eingegeben wird
+- **THEN** wird das Mandat abgelehnt
 
-#### Scenario: Invalid reference character
-- **WHEN** a reference contains `ä` or `_`
-- **THEN** the mandate is rejected naming the allowed character set
+#### Scenario: Ungültiges Zeichen in der Referenz
+- **WHEN** eine Referenz `ä` oder `_` enthält
+- **THEN** wird das Mandat unter Nennung des erlaubten Zeichensatzes abgelehnt
 
-### Requirement: Mandate lifecycle
-The system SHALL use the states `pending_evidence`, `active`, `amended`, `revoked` and `expired`, collect only `active` mandates, record amendments (IBAN, holder name, reference) with date in a history so that the next collection carries the amendment information pain.008 requires, record revocations with date and source (member, bank, admin), warn 60 days ahead and move to `expired` any mandate unused for 36 months.
+### Requirement: Lebenszyklus des Mandats
+Das System MUSS (SHALL) die Zustände `pending_evidence`, `active`, `amended`, `revoked` und `expired` verwenden, nur `active` Mandate einziehen, Änderungen (IBAN, Name des Kontoinhabers, Referenz) mit Datum in einer Historie erfassen, damit der nächste Einzug die von pain.008 verlangten Änderungsangaben trägt, Widerrufe mit Datum und Quelle (Mitglied, Bank, Admin) erfassen sowie jedes 36 Monate ungenutzte Mandat 60 Tage vorher ankündigen und dann auf `expired` setzen.
 
-#### Scenario: Pending mandate not collected
-- **WHEN** a collection run is prepared for a member whose mandate is `pending_evidence`
-- **THEN** the readiness column shows "not active" and the invoice is not included
+#### Scenario: Ausstehendes Mandat wird nicht eingezogen
+- **WHEN** ein Einzugslauf für ein Mitglied vorbereitet wird, dessen Mandat `pending_evidence` ist
+- **THEN** zeigt die Bereitschaftsspalte „nicht aktiv“ und die Rechnung wird nicht aufgenommen
 
-#### Scenario: Amendment carried
-- **WHEN** a mandate's IBAN was amended after the last collection
-- **THEN** the next pain.008 item carries the amendment information
+#### Scenario: Änderung wird übermittelt
+- **WHEN** die IBAN eines Mandats nach dem letzten Einzug geändert wurde
+- **THEN** trägt die nächste pain.008-Position die Änderungsangaben
 
-#### Scenario: Expiry
-- **WHEN** a mandate has not been used for 36 months
-- **THEN** the nightly job moves it to `expired`
+#### Scenario: Ablauf
+- **WHEN** ein Mandat 36 Monate lang nicht genutzt wurde
+- **THEN** setzt der nächtliche Job es auf `expired`
 
-### Requirement: IBAN protection
-The system SHALL encrypt IBANs at rest, keep a keyed hash for matching, and show IBANs in full only to users with the IBAN field permission; everyone else SHALL see a masked form such as `DE•• •••• •••• •••• ••12 34`.
+### Requirement: Schutz der IBAN
+Das System MUSS (SHALL) IBANs im Ruhezustand verschlüsseln, für die Zuordnung einen schlüsselbasierten Hash vorhalten und IBANs nur Benutzer:innen mit der Feldberechtigung für die IBAN vollständig zeigen; alle anderen MÜSSEN eine maskierte Form wie `DE•• •••• •••• •••• ••12 34` sehen.
 
-#### Scenario: Masked IBAN
-- **WHEN** a user without the IBAN right opens a mandate
-- **THEN** only the masked IBAN with the last four digits is shown
+#### Scenario: Maskierte IBAN
+- **WHEN** eine Benutzer:in ohne IBAN-Berechtigung ein Mandat öffnet
+- **THEN** wird nur die maskierte IBAN mit den letzten vier Ziffern angezeigt
 
-### Requirement: Collection run preparation
-The system SHALL create a direct-debit run from selected open receivables (all with an active mandate, a saved view, or hand-picked) with a readiness column (mandate OK, missing, not active, transfer payer) and settings for creditor account, validated creditor ID, requested collection date, batch booking and one item per invoice or per debtor; the collection date SHALL be checked against TARGET2 business days and the bank account's minimum lead time (default 2 business days, never below D-1 for CORE), and the proposed date SHALL be today plus 5 business days.
+### Requirement: Vorbereitung des Einzugslaufs
+Das System MUSS (SHALL) einen Lastschriftlauf aus ausgewählten offenen Forderungen anlegen (alle mit aktivem Mandat, eine gespeicherte Ansicht oder handverlesen) mit Bereitschaftsspalte (Mandat OK, fehlt, nicht aktiv, Überweisungszahler) und Einstellungen für Gläubigerkonto, validierte Gläubiger-ID, gewünschtes Einzugsdatum, Sammelbuchung und eine Position pro Rechnung oder pro zahlungspflichtiger Person; das Einzugsdatum MUSS gegen TARGET2-Geschäftstage und die Mindestvorlaufzeit des Bankkontos geprüft werden (Standard 2 Geschäftstage, bei CORE nie unter D-1), und als Datum MUSS heute plus 5 Geschäftstage vorgeschlagen werden.
 
-#### Scenario: Date too early
-- **WHEN** a collection date one business day ahead is chosen with a 2-day lead time
-- **THEN** the run cannot be generated until a valid date is chosen
+#### Scenario: Datum zu früh
+- **WHEN** bei 2 Tagen Vorlaufzeit ein Einzugsdatum einen Geschäftstag voraus gewählt wird
+- **THEN** kann der Lauf erst erzeugt werden, wenn ein gültiges Datum gewählt ist
 
-#### Scenario: Holiday skipped
-- **WHEN** the proposed date would fall on a TARGET2 holiday
-- **THEN** the next TARGET2 business day is proposed
+#### Scenario: Feiertag übersprungen
+- **WHEN** das vorgeschlagene Datum auf einen TARGET2-Feiertag fiele
+- **THEN** wird der nächste TARGET2-Geschäftstag vorgeschlagen
 
-### Requirement: File splitting by order limit
-The system SHALL split collection files so that no payment information block holds more than 999 transactions and, where the bank account has an order limit (Auftragslimit), no file's control sum exceeds it.
+### Requirement: Dateiaufteilung nach Auftragslimit
+Das System MUSS (SHALL) Einzugsdateien so aufteilen, dass kein Payment-Information-Block mehr als 999 Transaktionen enthält und, sofern das Bankkonto ein Auftragslimit hat, die Kontrollsumme keiner Datei es überschreitet.
 
-#### Scenario: Order limit
-- **WHEN** a run totals 3000000 cents and the order limit is 2000000 cents
-- **THEN** at least two files are generated, each at or below 2000000 cents
+#### Scenario: Auftragslimit
+- **WHEN** ein Lauf insgesamt 3000000 Cent umfasst und das Auftragslimit 2000000 Cent beträgt
+- **THEN** werden mindestens zwei Dateien erzeugt, jede mit höchstens 2000000 Cent
 
-### Requirement: Direct-debit remittance template (should)
-The system SHALL build each debit's remittance text from a template with placeholders for invoice number, member number and period, limited to 140 characters of the SEPA character set.
+### Requirement: Vorlage für den Verwendungszweck der Lastschrift (sollte)
+Das System MUSS (SHALL) den Verwendungszweck jeder Lastschrift aus einer Vorlage mit Platzhaltern für Rechnungsnummer, Mitgliedsnummer und Zeitraum erzeugen, begrenzt auf 140 Zeichen des SEPA-Zeichensatzes.
 
-#### Scenario: Remittance rendered
-- **WHEN** the template is `Beitrag {period} Mitgl. {member_no} Re {invoice_no}`
-- **THEN** each debit carries the rendered text, at most 140 characters
+#### Scenario: Verwendungszweck erzeugt
+- **WHEN** die Vorlage `Beitrag {period} Mitgl. {member_no} Re {invoice_no}` lautet
+- **THEN** trägt jede Lastschrift den erzeugten Text mit höchstens 140 Zeichen
 
-### Requirement: Pre-notification
-The system SHALL send each debtor a pre-notification by e-mail or letter with amount, collection date, mandate reference and creditor ID at least the configured number of days before the collection date (default 14, minimum 1 if agreed in the mandate), and log each notification per debtor and run.
+### Requirement: Vorabankündigung
+Das System MUSS (SHALL) jeder zahlungspflichtigen Person per E-Mail oder Brief eine Vorabankündigung mit Betrag, Einzugsdatum, Mandatsreferenz und Gläubiger-ID senden, mindestens die konfigurierte Anzahl Tage vor dem Einzugsdatum (Standard 14, mindestens 1, falls im Mandat vereinbart), und jede Benachrichtigung pro zahlungspflichtiger Person und Lauf protokollieren.
 
-#### Scenario: Late pre-notification
-- **WHEN** pre-notifications have not been sent 14 days before the collection date
-- **THEN** the run warns and proposes a later collection date
+#### Scenario: Verspätete Vorabankündigung
+- **WHEN** Vorabankündigungen 14 Tage vor dem Einzugsdatum noch nicht versendet sind
+- **THEN** warnt der Lauf und schlägt ein späteres Einzugsdatum vor
 
-### Requirement: pain.008 generation and stored bytes
-The system SHALL generate pain.008.001.08 files with sequence type RCUR (OOFF for one-off mandates, FRST optional by setting), validate them against the official XSD before offering them, and store the exact bytes, SHA-256, message ID and schema version on the run so that every re-download returns the same bytes.
+### Requirement: Erzeugung von pain.008 und gespeicherte Bytes
+Das System MUSS (SHALL) pain.008.001.08-Dateien mit Sequenztyp RCUR erzeugen (OOFF für einmalige Mandate, FRST optional per Einstellung), sie vor dem Anbieten gegen das offizielle XSD validieren und die exakten Bytes, SHA-256, Message-ID und Schemaversion am Lauf speichern, sodass jeder erneute Download dieselben Bytes liefert.
 
-#### Scenario: XSD failure
-- **WHEN** a generated file fails XSD validation
-- **THEN** it is not offered for download and the error is shown
+#### Scenario: XSD-Fehler
+- **WHEN** eine erzeugte Datei die XSD-Validierung nicht besteht
+- **THEN** wird sie nicht zum Download angeboten und der Fehler wird angezeigt
 
-#### Scenario: Re-download
-- **WHEN** a generated file is downloaded again
-- **THEN** its SHA-256 equals the stored hash
+#### Scenario: Erneuter Download
+- **WHEN** eine erzeugte Datei erneut heruntergeladen wird
+- **THEN** entspricht ihr SHA-256 dem gespeicherten Hash
 
-### Requirement: Double-debit guard
-The system SHALL allow each invoice to be live in at most one collection item at a time, enforced by a database constraint, also when one item per debtor carries several invoices; an invoice stays live from inclusion until its item is returned or its run is released, and selecting it for another run SHALL be blocked meanwhile.
+### Requirement: Schutz vor Doppeleinzug
+Das System MUSS (SHALL) zulassen, dass jede Rechnung jeweils höchstens in einer Einzugsposition aktiv ist, durchgesetzt durch einen Datenbank-Constraint, auch wenn eine Position pro zahlungspflichtiger Person mehrere Rechnungen trägt; eine Rechnung bleibt von der Aufnahme an aktiv, bis ihre Position zurückgegeben oder ihr Lauf freigegeben wird, und ihre Auswahl für einen anderen Lauf MUSS so lange gesperrt sein.
 
-#### Scenario: Second run blocked
-- **WHEN** an invoice in a `downloaded` run is selected for a new run
-- **THEN** the system refuses to include it
+#### Scenario: Zweiter Lauf gesperrt
+- **WHEN** eine Rechnung in einem `downloaded` Lauf für einen neuen Lauf ausgewählt wird
+- **THEN** verweigert das System ihre Aufnahme
 
-#### Scenario: Per-debtor item
-- **WHEN** a per-debtor item carries invoices A and B and a second run tries to include B
-- **THEN** B is refused
+#### Scenario: Position pro zahlungspflichtiger Person
+- **WHEN** eine Position pro zahlungspflichtiger Person die Rechnungen A und B trägt und ein zweiter Lauf B aufnehmen will
+- **THEN** wird B abgelehnt
 
-### Requirement: Collection run states and release
-The system SHALL move runs through `draft` → `generated` → `downloaded` (set on the first file download) → `submitted` (marked by the treasurer) → `settled` or `partly_returned`, plus `released`; a `generated` run never downloaded MAY be cancelled and releases its invoices; a `downloaded` run SHALL be released only when the treasurer confirms with TOTP that the file was never uploaded, or when imported statements after the collection date show it was not executed.
+### Requirement: Zustände und Freigabe des Einzugslaufs
+Das System MUSS (SHALL) Läufe durch `draft` → `generated` → `downloaded` (beim ersten Datei-Download gesetzt) → `submitted` (von der Kassenwart:in markiert) → `settled` oder `partly_returned` sowie `released` führen; ein `generated` Lauf, der nie heruntergeladen wurde, DARF abgebrochen werden und gibt seine Rechnungen frei; ein `downloaded` Lauf DARF nur freigegeben werden, wenn die Kassenwart:in mit TOTP bestätigt, dass die Datei nie hochgeladen wurde, oder wenn importierte Kontoauszüge nach dem Einzugsdatum zeigen, dass er nicht ausgeführt wurde.
 
-#### Scenario: Downloaded run release
-- **WHEN** a treasurer releases a `downloaded` run
-- **THEN** the system requires TOTP and the statement that the file was never submitted before releasing the invoices
+#### Scenario: Freigabe eines heruntergeladenen Laufs
+- **WHEN** eine Kassenwart:in einen `downloaded` Lauf freigibt
+- **THEN** verlangt das System TOTP und die Erklärung, dass die Datei nie eingereicht wurde, bevor es die Rechnungen freigibt
 
-#### Scenario: Automatic downloaded state
-- **WHEN** the file of a `generated` run is downloaded for the first time
-- **THEN** the run moves to `downloaded`
+#### Scenario: Automatischer Zustand „heruntergeladen“
+- **WHEN** die Datei eines `generated` Laufs zum ersten Mal heruntergeladen wird
+- **THEN** wechselt der Lauf zu `downloaded`
 
-### Requirement: Credit transfer files
-The system SHALL generate pain.001.001.09 files from selected open payables (receipts, credit notes, refunds of overpayments), XSD-validated and stored with bytes, hash, execution date and debtor account, carry the receipt or credit-note number in each remittance, and block payables in a generated transfer run from a second run.
+### Requirement: Überweisungsdateien
+Das System MUSS (SHALL) pain.001.001.09-Dateien aus ausgewählten offenen Verbindlichkeiten (Belege, Gutschriften, Erstattungen von Überzahlungen) erzeugen, XSD-validiert und mit Bytes, Hash, Ausführungsdatum und Auftraggeberkonto gespeichert, in jedem Verwendungszweck die Beleg- oder Gutschriftsnummer angeben und Verbindlichkeiten in einem erzeugten Überweisungslauf für einen zweiten Lauf sperren.
 
-#### Scenario: Payable paid twice
-- **WHEN** a receipt already in a generated transfer run is selected again
-- **THEN** the system refuses
+#### Scenario: Verbindlichkeit doppelt bezahlt
+- **WHEN** ein Beleg, der bereits in einem erzeugten Überweisungslauf ist, erneut ausgewählt wird
+- **THEN** verweigert das System dies
 
-### Requirement: Bank statement import
-The system SHALL import CAMT.053 (.001.02 and .001.08, batch bookings split into items) and CSV files through saved bank profiles (column mapping, date format, decimal separator, encoding; presets for Sparkasse, Volksbank, Deutsche Bank, Commerzbank, GLS, ING, DKB); it SHALL store the raw file encrypted with SHA-256, reject the same file twice, de-duplicate overlapping periods by a transaction fingerprint with a review for near-duplicates, block completion when opening and closing balances do not match the running balance (override with reason), reject XML with DOCTYPE, and allow rolling back an import while none of its transactions is posted.
+### Requirement: Import von Kontoauszügen
+Das System MUSS (SHALL) CAMT.053 (.001.02 und .001.08, Sammelbuchungen in Positionen aufgeteilt) und CSV über gespeicherte Bankprofile importieren (Spaltenzuordnung, Datumsformat, Dezimaltrennzeichen, Kodierung; Vorlagen für Sparkasse, Volksbank, Deutsche Bank, Commerzbank, GLS, ING, DKB); es MUSS die Rohdatei verschlüsselt mit SHA-256 speichern, dieselbe Datei kein zweites Mal annehmen, überlappende Zeiträume per Fingerabdruck der Kontobewegung deduplizieren (Fast-Dubletten zur Prüfung), den Abschluss sperren, wenn Anfangs- und Endsaldo nicht zum laufenden Saldo passen (Übersteuerung mit Begründung), XML mit DOCTYPE ablehnen und das Zurückrollen eines Imports erlauben, solange keine seiner Kontobewegungen gebucht ist.
 
-#### Scenario: Same file twice
-- **WHEN** a CAMT file with a known SHA-256 is imported again for the same account
-- **THEN** the import is rejected
+#### Scenario: Dieselbe Datei zweimal
+- **WHEN** eine CAMT-Datei mit bekanntem SHA-256 erneut für dasselbe Konto importiert wird
+- **THEN** wird der Import abgelehnt
 
-#### Scenario: Overlapping statements
-- **WHEN** two statements cover 1–15 and 10–31 March
-- **THEN** transactions from 10–15 March are imported once
+#### Scenario: Überlappende Kontoauszüge
+- **WHEN** zwei Kontoauszüge den 1.–15. und den 10.–31. März abdecken
+- **THEN** werden die Kontobewegungen vom 10.–15. März nur einmal importiert
 
-#### Scenario: Balance mismatch
-- **WHEN** the statement's opening balance differs from the account's running balance
-- **THEN** completion is blocked unless overridden with a reason
+#### Scenario: Saldoabweichung
+- **WHEN** der Anfangssaldo des Kontoauszugs vom laufenden Saldo des Kontos abweicht
+- **THEN** ist der Abschluss gesperrt, sofern er nicht mit Begründung übersteuert wird
 
-### Requirement: Payment matching and reconciliation inbox
-The system SHALL match transactions by rules in fixed order (end-to-end ID of a collection item; invoice number in remittance text; mandate reference; member number; amount plus counterparty IBAN against open items; learned counterparty rules), show each suggestion with score 0–100, the rule and the matched text highlighted, auto-confirm only rules 1–2 above a configurable threshold (default 95), and keep everything else in an inbox with counters (unmatched, suggested, needs receipt) and a keyboard flow; allocations SHALL be many-to-many with the remainder becoming credit or staying open; non-invoice bookings SHALL be allocated directly to account, sphere and cost centre; confirming an allocation SHALL post the journal entry and undoing it SHALL post a reversal.
+### Requirement: Zahlungszuordnung und Abgleich-Posteingang
+Das System MUSS (SHALL) Kontobewegungen nach Regeln in fester Reihenfolge zuordnen (End-to-End-ID einer Einzugsposition; Rechnungsnummer im Verwendungszweck; Mandatsreferenz; Mitgliedsnummer; Betrag plus IBAN der Gegenpartei gegen offene Posten; gelernte Gegenpartei-Regeln), jeden Vorschlag mit Score 0–100, Regel und hervorgehobenem Treffertext zeigen, nur Regeln 1–2 oberhalb eines konfigurierbaren Schwellenwerts (Standard 95) automatisch bestätigen und alles andere in einem Posteingang mit Zählern (nicht zugeordnet, vorgeschlagen, Beleg fehlt) und Tastatur-Ablauf halten; Zuordnungen MÜSSEN n:m sein, der Rest wird Guthaben oder bleibt offen; Buchungen ohne Rechnung MÜSSEN direkt Konto, Sphäre und Kostenstelle zugeordnet werden; das Bestätigen einer Zuordnung MUSS die Buchung erzeugen und das Rückgängigmachen ein Storno buchen.
 
-#### Scenario: Auto-confirm by end-to-end ID
-- **WHEN** a credit carries the end-to-end ID of a collection item and scores 98
-- **THEN** the allocation is confirmed and posted automatically
+#### Scenario: Automatische Bestätigung per End-to-End-ID
+- **WHEN** eine Gutschrift die End-to-End-ID einer Einzugsposition trägt und mit 98 bewertet wird
+- **THEN** wird die Zuordnung automatisch bestätigt und gebucht
 
-#### Scenario: Amount match waits
-- **WHEN** a transfer matches an open item only by amount and IBAN
-- **THEN** it waits in the inbox as a suggestion
+#### Scenario: Betragstreffer wartet
+- **WHEN** eine Überweisung einem offenen Posten nur über Betrag und IBAN entspricht
+- **THEN** wartet sie im Posteingang als Vorschlag
 
-#### Scenario: Collective transfer
-- **WHEN** one transfer of 9000 cents pays three invoices of 3000 cents
-- **THEN** it is allocated to all three and each is `paid`
+#### Scenario: Sammelüberweisung
+- **WHEN** eine Überweisung über 9000 Cent drei Rechnungen über je 3000 Cent bezahlt
+- **THEN** wird sie allen drei zugeordnet und jede ist `paid`
 
-### Requirement: Bulk allocation (should)
-The system SHALL allocate several selected unposted transactions to one ledger account, sphere and cost centre in one step; posted entries SHALL change only through reversals.
+### Requirement: Massenzuordnung (sollte)
+Das System MUSS (SHALL) mehrere ausgewählte ungebuchte Kontobewegungen in einem Schritt einem Sachkonto, einer Sphäre und einer Kostenstelle zuordnen; gebuchte Buchungen DÜRFEN nur durch Stornos geändert werden.
 
-#### Scenario: Bank fees in bulk
-- **WHEN** a treasurer selects twelve unposted bank-fee transactions and allocates them to one account
-- **THEN** twelve entries are posted to that account
+#### Scenario: Bankgebühren als Massenaktion
+- **WHEN** eine Kassenwart:in zwölf ungebuchte Bankgebühren-Kontobewegungen auswählt und einem Konto zuordnet
+- **THEN** werden zwölf Buchungen auf dieses Konto gebucht
 
-### Requirement: Return debits
-The system SHALL detect returns from CAMT reason codes (for example AC04, AM04, MD06, MS02) and the original end-to-end ID, or for CSV from keywords ("Rücklastschrift", "Retoure", "Rückgabe") plus amount and IBAN; processing SHALL in one transaction link the return to the collection item, reverse the allocation and reopen the invoice, book the bank fee as expense, add an optional recharge fee as a new line or invoice, store the reason code shown in plain German, propose revoking or reviewing the mandate for MD06 / MD01, and optionally trigger a dunning step and member notification; several returns from one statement SHALL be processable in bulk, with an optional automatic mode for high-confidence returns.
+### Requirement: Rücklastschriften
+Das System MUSS (SHALL) Rücklastschriften anhand von CAMT-Rückgabecodes (zum Beispiel AC04, AM04, MD06, MS02) und der ursprünglichen End-to-End-ID erkennen, bei CSV anhand von Schlüsselwörtern ("Rücklastschrift", "Retoure", "Rückgabe") plus Betrag und IBAN; die Bearbeitung MUSS in einer Transaktion die Rücklastschrift mit der Einzugsposition verknüpfen, die Zuordnung stornieren und die Rechnung wieder öffnen, die Bankgebühr als Aufwand buchen, eine optionale Rücklastschriftgebühr als neue Position oder Rechnung hinzufügen, den Rückgabecode im Klartext auf Deutsch speichern, bei MD06 / MD01 Widerruf oder Prüfung des Mandats vorschlagen und optional eine Mahnstufe und Benachrichtigung des Mitglieds auslösen; mehrere Rücklastschriften eines Kontoauszugs MÜSSEN gesammelt bearbeitbar sein, mit optionalem Automatikmodus für Rücklastschriften mit hoher Sicherheit.
 
-#### Scenario: Account closed
-- **WHEN** a return with code AC04 and a 300-cent bank fee is processed
-- **THEN** the invoice reopens, 300 cents are booked as expense and the reason shows "Konto erloschen"
+#### Scenario: Konto erloschen
+- **WHEN** eine Rücklastschrift mit Code AC04 und 300 Cent Bankgebühr bearbeitet wird
+- **THEN** wird die Rechnung wieder geöffnet, 300 Cent werden als Aufwand gebucht und als Grund wird "Konto erloschen" angezeigt
 
-#### Scenario: Refund requested
-- **WHEN** a return carries MD06
-- **THEN** the system proposes reviewing or revoking the mandate
+#### Scenario: Erstattung verlangt
+- **WHEN** eine Rücklastschrift MD06 trägt
+- **THEN** schlägt das System vor, das Mandat zu prüfen oder zu widerrufen
 
-### Requirement: Pre-notification on the invoice
-The system SHALL print the SEPA pre-notification on every invoice of a member paying by direct debit with an active mandate (amount, earliest collection date equal to the due date, mandate reference, creditor ID), freeze these values at issue, and SHALL refuse to put an invoice into a collection run whose collection date is before the invoice's due date.
+### Requirement: Vorabankündigung auf der Rechnung
+Das System MUSS (SHALL) die SEPA-Vorabankündigung auf jede Rechnung eines per Lastschrift mit aktivem Mandat zahlenden Mitglieds drucken (Betrag, frühestes Einzugsdatum gleich dem Fälligkeitsdatum, Mandatsreferenz, Gläubiger-ID), diese Werte beim Ausstellen festschreiben und MUSS verweigern, eine Rechnung in einen Einzugslauf aufzunehmen, dessen Einzugsdatum vor ihrem Fälligkeitsdatum liegt.
 
-#### Scenario: Collection before due date
-- **WHEN** a treasurer creates a run on 2 November for an invoice due on 15 November
-- **THEN** the run is refused with a message about the pre-notification
+#### Scenario: Einzug vor Fälligkeit
+- **WHEN** eine Kassenwart:in am 2. November einen Lauf für eine am 15. November fällige Rechnung anlegt
+- **THEN** wird der Lauf mit einem Hinweis auf die Vorabankündigung abgelehnt
 
-### Requirement: Automatic matching order
-The system SHALL match imported transactions automatically only in these cases, in this order: end-to-end ID of an open collection item with the same amount (settle), end-to-end ID of a collected item on a debit (return debit), a credit equal to the control sum of a downloaded or submitted file within ten days of its collection date while all its items are open (settle the file), and exactly one invoice number in the remittance text with the exact open amount (allocate); everything else SHALL only be suggested.
+### Requirement: Reihenfolge der automatischen Zuordnung
+Das System MUSS (SHALL) importierte Kontobewegungen nur in diesen Fällen und in dieser Reihenfolge automatisch zuordnen: End-to-End-ID einer offenen Einzugsposition mit gleichem Betrag (ausgleichen), End-to-End-ID einer eingezogenen Position bei einer Belastung (Rücklastschrift), eine Gutschrift in Höhe der Kontrollsumme einer heruntergeladenen oder eingereichten Datei innerhalb von zehn Tagen nach deren Einzugsdatum, solange alle ihre Positionen offen sind (Datei ausgleichen), und genau eine Rechnungsnummer im Verwendungszweck mit exakt dem offenen Betrag (zuordnen); alles andere MUSS nur vorgeschlagen werden.
 
-#### Scenario: Partial payment is only suggested
-- **WHEN** a transfer of 2000 cents mentions an invoice with 5000 cents open
-- **THEN** the transaction stays in the inbox with that invoice as a suggestion and nothing is booked
+#### Scenario: Teilzahlung wird nur vorgeschlagen
+- **WHEN** eine Überweisung über 2000 Cent eine Rechnung mit 5000 Cent offenem Betrag nennt
+- **THEN** bleibt die Kontobewegung mit dieser Rechnung als Vorschlag im Posteingang und nichts wird gebucht
 
-### Requirement: Mandate amendment after an IBAN change
-The system SHALL keep the mandate when an accepted IBAN change replaces the debtor account and mark the next direct debit with the amendment indicator: with the original account when the bank stays the same, otherwise with original debtor agent `SMNDA`.
+### Requirement: Mandatsänderung nach einer IBAN-Änderung
+Das System MUSS (SHALL) das Mandat behalten, wenn eine angenommene IBAN-Änderung das Konto der zahlungspflichtigen Person ersetzt, und die nächste Lastschrift mit dem Änderungskennzeichen markieren: mit dem ursprünglichen Konto, wenn die Bank gleich bleibt, sonst mit dem ursprünglichen Zahlungsdienstleister `SMNDA`.
 
-#### Scenario: New bank
-- **WHEN** a member's accepted IBAN change moves the account to another bank and the next debit run is generated
-- **THEN** that member's transaction carries `AmdmntInd` true and `OrgnlDbtrAgt` `SMNDA`, and later runs do not
+#### Scenario: Neue Bank
+- **WHEN** die angenommene IBAN-Änderung eines Mitglieds das Konto zu einer anderen Bank verlegt und der nächste Lastschriftlauf erzeugt wird
+- **THEN** trägt die Transaktion dieses Mitglieds `AmdmntInd` true und `OrgnlDbtrAgt` `SMNDA`, spätere Läufe nicht
 
-### Requirement: Remittance text template
-The system SHALL build each debit's remittance text from the organisation's template and refuse templates with unknown placeholders.
+### Requirement: Vorlage für den Verwendungszweck
+Das System MUSS (SHALL) den Verwendungszweck jeder Lastschrift aus der Vorlage des Vereins erzeugen und Vorlagen mit unbekannten Platzhaltern ablehnen.
 
-#### Scenario: Member number in the remittance text
-- **WHEN** the template is "Beitrag {{mitgliedsnummer}} {{rechnungsnummer}}" and a debit run is generated
-- **THEN** each debit's Ustrd reads "Beitrag <member number> <invoice number>"
+#### Scenario: Mitgliedsnummer im Verwendungszweck
+- **WHEN** die Vorlage "Beitrag {{mitgliedsnummer}} {{rechnungsnummer}}" lautet und ein Lastschriftlauf erzeugt wird
+- **THEN** lautet der Ustrd jeder Lastschrift "Beitrag <Mitgliedsnummer> <Rechnungsnummer>"
 
