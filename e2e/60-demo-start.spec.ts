@@ -23,7 +23,7 @@ test('demo start: in demo mode a signed-out visitor chooses how to look around',
   await expect(page.getByText(`curl -fsSLO ${origin}/ov.mjs`)).toBeVisible();
   await expect(page.getByText('/plugin install openverein@openverein')).toBeVisible();
   await expect(page.getByText(/alle 24 Stunden von vorn/)).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Quellcode auf GitHub' })).toHaveAttribute('href', 'https://github.com/krautdawg/openverein');
+  await expect(page.getByRole('link', { name: 'Quellcode auf GitHub' })).toHaveAttribute('href', 'https://github.com/KI-Klub-Werder-e-V/openverein');
   await expect(page.getByRole('link', { name: /Als Mitglied ansehen/ })).toHaveAttribute('href', '/portal');
   await page.getByRole('link', { name: /Als Vorstand ansehen/ }).click();
   await expect(page).toHaveURL(/\/anmelden$/);

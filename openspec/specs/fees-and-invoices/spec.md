@@ -1,173 +1,173 @@
 # fees-and-invoices Specification
 
 ## Purpose
-The fees-and-invoices capability covers effective-dated fee plans and assignments, the fee run with mandatory preview and the double-billing guard, invoices with immutable issued documents, gapless numbering, cancellation documents and EPC QR codes, and open items with dunning and write-off (B M10, M11, M12, M13). All amounts are integer cents. Items that B rates "should" or "could" are marked as such in the requirement name; everything else is MVP behaviour.
+Die Capability fees-and-invoices umfasst stichtagsbezogene Beitragsarten und Beitragszuordnungen, den Beitragslauf mit verpflichtender Vorschau und Schutz vor Doppelabrechnung, Rechnungen mit unveränderlichen ausgestellten Dokumenten, lückenloser Nummerierung, Stornorechnungen und EPC-QR-Codes sowie offene Posten mit Mahnwesen und Ausbuchung (B M10, M11, M12, M13). Alle Beträge sind ganzzahlige Cent. Punkte, die B als „sollte“ oder „könnte“ einstuft, sind im Namen der Anforderung entsprechend markiert; alles andere ist MVP-Verhalten.
 ## Requirements
-### Requirement: Effective-dated fee plans
-The system SHALL keep fee plans with name, invoice line text, ledger account, tax sphere, cost centre and tax rate, and versions with `valid_from`, amount in cents, interval (one-off or 1 to 60 whole months, optionally restricted by the organisation), due-day rule, proration policy (`none`, `month`, `day`, with an "exit month counts" flag), admission fee, period anchor (`calendar` or `entry`) and first-period rule (join date, 1st of join month, 1st of next month, start of quarter, start of half-year, or set by hand); changing an amount SHALL create a new version and never alter posted assessments, and a plan with assessments SHALL only be retired, not deleted.
+### Requirement: Stichtagsbezogene Beitragsarten
+Das System MUSS (SHALL) Beitragsarten mit Name, Rechnungspositionstext, Konto, Sphäre, Kostenstelle und Steuersatz führen, dazu Versionen mit `valid_from`, Betrag in Cent, Intervall (einmalig oder 1 bis 60 volle Monate, optional vom Verein eingeschränkt), Fälligkeitsregel, Anteilsberechnung (`none`, `month`, `day`, mit Schalter „Austrittsmonat zählt“), Aufnahmegebühr, Zeitraumanker (`calendar` oder `entry`) und Regel für den ersten Zeitraum (Eintrittsdatum, 1. des Eintrittsmonats, 1. des Folgemonats, Quartals-, Halbjahresbeginn oder manuell); eine Betragsänderung MUSS eine neue Version anlegen und gebuchte Beitragsforderungen nie ändern, und eine Beitragsart mit Forderungen DARF NICHT gelöscht, nur stillgelegt werden.
 
-#### Scenario: Amount change creates version
-- **WHEN** the general assembly raises the adult fee from 12000 to 14400 cents from 1 January 2027
-- **THEN** a new version valid from 2027-01-01 is created and 2026 assessments keep 12000 cents
+#### Scenario: Betragsänderung erzeugt Version
+- **WHEN** die Mitgliederversammlung den Erwachsenenbeitrag ab 1. Januar 2027 von 12000 auf 14400 Cent erhöht
+- **THEN** wird eine neue, ab 2027-01-01 gültige Version angelegt, und die Forderungen für 2026 behalten 12000 Cent
 
-#### Scenario: Every easyVerein interval allowed
-- **WHEN** a plan version is created with an interval of 24 months
-- **THEN** it is accepted, while 61 months is rejected
+#### Scenario: Jedes easyVerein-Intervall erlaubt
+- **WHEN** eine Version einer Beitragsart mit einem Intervall von 24 Monaten angelegt wird
+- **THEN** wird sie akzeptiert, während 61 Monate abgelehnt werden
 
-#### Scenario: Plan with assessments
-- **WHEN** an admin deletes a plan that has assessments
-- **THEN** the system refuses and offers to retire it
+#### Scenario: Beitragsart mit Forderungen
+- **WHEN** ein Admin eine Beitragsart löscht, zu der es Forderungen gibt
+- **THEN** lehnt das System ab und bietet an, sie stillzulegen
 
-### Requirement: Fee assignments
-The system SHALL assign plans to members as dated fee assignments with exactly one main plan and any number of add-on plans at any date, an optional individual amount override with a mandatory reason, an optional payer override and a first service period start; each member SHALL have a default payment method (none, direct debit, transfer, cash, custom) overridden by a household or payer setting; a person's credit balance SHALL be offset against new assessments unless the person opted out.
+### Requirement: Beitragszuordnungen
+Das System MUSS (SHALL) Mitgliedern Beitragsarten als datierte Beitragszuordnungen zuweisen: genau eine Hauptbeitragsart und beliebig viele Zusatzbeitragsarten zu beliebigen Daten, optional mit individuellem Betrag samt Pflichtbegründung, abweichender zahlender Person und Beginn des ersten Leistungszeitraums; jedes Mitglied MUSS eine Standard-Zahlungsart haben (keine, Lastschrift, Überweisung, bar, benutzerdefiniert), die Haushalt oder zahlende Person übersteuern; ein Guthaben MUSS mit neuen Forderungen verrechnet werden, sofern die Person nicht widersprochen hat.
 
-#### Scenario: Second main plan rejected
-- **WHEN** a member with main plan "Erwachsene" from 1 January gets main plan "Familie" from 1 March without ending the first
-- **THEN** the assignment is rejected
+#### Scenario: Zweite Hauptbeitragsart abgelehnt
+- **WHEN** ein Mitglied mit Hauptbeitragsart "Erwachsene" ab 1. Januar die Hauptbeitragsart "Familie" ab 1. März erhält, ohne dass die erste beendet wird
+- **THEN** wird die Zuordnung abgelehnt
 
-#### Scenario: Credit offset
-- **WHEN** a member with 2000 cents credit is assessed 6000 cents
-- **THEN** the invoice shows 6000 cents with a 2000-cent credit offset and 4000 cents due
+#### Scenario: Verrechnung von Guthaben
+- **WHEN** einem Mitglied mit 2000 Cent Guthaben 6000 Cent berechnet werden
+- **THEN** zeigt die Rechnung 6000 Cent mit 2000 Cent verrechnetem Guthaben und 4000 Cent fälligem Betrag
 
-### Requirement: Fee calculator
-The system SHALL answer on the member profile what the member will pay for a chosen period and why, line by line, without posting anything.
+### Requirement: Beitragsrechner
+Das System MUSS (SHALL) im Mitgliedsprofil zeilenweise beantworten, was das Mitglied für einen gewählten Zeitraum zahlen wird und warum, ohne etwas zu buchen.
 
-#### Scenario: Explanation without side effects
-- **WHEN** an admin opens the fee calculator for Q3
-- **THEN** the lines, proration and discounts are shown and no assessment or invoice is created
+#### Scenario: Erklärung ohne Nebenwirkungen
+- **WHEN** ein Admin den Beitragsrechner für Q3 öffnet
+- **THEN** werden Positionen, Anteilsberechnung und Rabatte angezeigt, und es wird weder eine Forderung noch eine Rechnung erzeugt
 
-### Requirement: Invoice line text template (should)
-The system SHALL build invoice line text from a template with placeholders for plan name, period start, period end and member number.
+### Requirement: Vorlage für den Rechnungspositionstext (sollte)
+Das System MUSS (SHALL) den Rechnungspositionstext aus einer Vorlage mit Platzhaltern für Name der Beitragsart, Zeitraumbeginn, Zeitraumende und Mitgliedsnummer erzeugen.
 
-#### Scenario: Line text rendered
-- **WHEN** the template is `{plan} {period_start}–{period_end}`
-- **THEN** a line reads "Erwachsene 01.01.2027–31.03.2027"
+#### Scenario: Positionstext erzeugt
+- **WHEN** die Vorlage `{plan} {period_start}–{period_end}` lautet
+- **THEN** lautet eine Position "Erwachsene 01.01.2027–31.03.2027"
 
-### Requirement: Fee run preview
-The system SHALL create a fee run for a due date and a member selection (all, a saved view, a division) as a preview that lists every member and household with each line (plan, period, proration, discount, admission fee, credit offset, catch-up periods) and the total, and warns about missing payment method, missing or inactive mandate, missing payer, amount 0 and members in `resigned` status; catch-up lines for retroactive periods SHALL be grouped, labelled and excludable per member; runs over 100 members SHALL execute as background jobs.
+### Requirement: Vorschau des Beitragslaufs
+Das System MUSS (SHALL) einen Beitragslauf für ein Fälligkeitsdatum und eine Mitgliederauswahl (alle, eine gespeicherte Ansicht, eine Abteilung) als Vorschau anlegen, die jedes Mitglied und jeden Haushalt mit jeder Position (Beitragsart, Zeitraum, Anteil, Rabatt, Aufnahmegebühr, Guthabenverrechnung, Nachholzeiträume) und Summe zeigt und vor fehlender Zahlungsart, fehlendem oder inaktivem Mandat, fehlender zahlender Person, Betrag 0 und Status `resigned` warnt; Nachholpositionen MÜSSEN gruppiert, gekennzeichnet und je Mitglied ausschließbar sein; Läufe über 100 Mitglieder MÜSSEN als Hintergrundjobs laufen.
 
-#### Scenario: Catch-up lines
-- **WHEN** a member is entered with a join date four months in the past under a monthly plan
-- **THEN** the preview shows four labelled catch-up lines that the treasurer can exclude
+#### Scenario: Nachholpositionen
+- **WHEN** ein Mitglied mit einem vier Monate zurückliegenden Eintrittsdatum und monatlicher Beitragsart erfasst wird
+- **THEN** zeigt die Vorschau vier gekennzeichnete Nachholpositionen, die die Kassenwart:in ausschließen kann
 
-#### Scenario: Warning for missing mandate
-- **WHEN** a member pays by direct debit without an active mandate
-- **THEN** the preview lists the member under the warning "mandate missing or not active"
+#### Scenario: Warnung bei fehlendem Mandat
+- **WHEN** ein Mitglied per Lastschrift zahlt, aber kein aktives Mandat hat
+- **THEN** führt die Vorschau das Mitglied unter der Warnung „Mandat fehlt oder ist nicht aktiv“
 
-### Requirement: Double-billing guard
-The system SHALL never hold two live (not `cancelled`) assessments of the same member that cover the same day in the same charge slot (`main` or the add-on plan), enforced by a database constraint; a second run over the same period, a plan switch, an interval change or a shifted proration start SHALL create nothing for days already billed and SHALL report this in the preview.
+### Requirement: Schutz vor Doppelabrechnung
+Das System DARF NIE (SHALL NOT) zwei lebende (nicht `cancelled`) Forderungen desselben Mitglieds halten, die denselben Tag im selben Abrechnungsplatz (`main` oder die Zusatzbeitragsart) abdecken, abgesichert durch einen Datenbank-Constraint; ein zweiter Lauf über denselben Zeitraum, ein Wechsel der Beitragsart, ein Intervallwechsel oder ein verschobener Anteilsbeginn MUSS für bereits abgerechnete Tage nichts erzeugen und dies in der Vorschau melden.
 
-#### Scenario: Same period twice
-- **WHEN** a fee run for January is posted a second time
-- **THEN** no assessment is created and the preview states that January is already billed
+#### Scenario: Derselbe Zeitraum zweimal
+- **WHEN** ein Beitragslauf für Januar ein zweites Mal gebucht wird
+- **THEN** wird keine Forderung erzeugt, und die Vorschau meldet, dass Januar bereits abgerechnet ist
 
-#### Scenario: Interval change
-- **WHEN** a member billed quarterly for January–March switches to monthly from February
-- **THEN** February and March are not billed again
+#### Scenario: Intervallwechsel
+- **WHEN** ein vierteljährlich für Januar–März abgerechnetes Mitglied ab Februar auf monatlich wechselt
+- **THEN** werden Februar und März nicht erneut abgerechnet
 
-### Requirement: Preview snapshot and posting
-The system SHALL treat the preview as a snapshot: posting SHALL fail with "data changed since preview" when any input changed and offer to re-preview, and posting SHALL create the assessments and invoices in resumable chunks so that a crash never creates duplicates.
+### Requirement: Vorschau-Snapshot und Buchung
+Das System MUSS (SHALL) die Vorschau als Snapshot behandeln: Das Buchen MUSS mit „Daten haben sich seit der Vorschau geändert“ fehlschlagen, wenn sich eine Eingabe geändert hat, und eine neue Vorschau anbieten; das Buchen MUSS Forderungen und Rechnungen in fortsetzbaren Teilschritten erzeugen, sodass ein Absturz nie Duplikate erzeugt.
 
-#### Scenario: Stale preview
-- **WHEN** a fee assignment changes after the preview and the treasurer clicks "post"
-- **THEN** posting fails with "data changed since preview" and nothing is created
+#### Scenario: Veraltete Vorschau
+- **WHEN** sich nach der Vorschau eine Beitragszuordnung ändert und die Kassenwart:in auf „Rechnungen buchen“ klickt
+- **THEN** schlägt das Buchen mit „Daten haben sich seit der Vorschau geändert“ fehl, und nichts wird erzeugt
 
-### Requirement: Fee run cancellation
-The system SHALL cancel a posted fee run only as a whole by issuing cancellation documents for its invoices, moving its assessments to `cancelled` so the periods can be assessed again.
+### Requirement: Storno eines Beitragslaufs
+Das System MUSS (SHALL) einen gebuchten Beitragslauf nur als Ganzes stornieren, indem es Stornorechnungen zu seinen Rechnungen ausstellt und seine Forderungen auf `cancelled` setzt, sodass die Zeiträume erneut berechnet werden können.
 
-#### Scenario: Re-assess after cancellation
-- **WHEN** a posted run is cancelled
-- **THEN** cancellation documents exist for its invoices and a new run can bill the same periods
+#### Scenario: Neuberechnung nach Storno
+- **WHEN** ein gebuchter Lauf storniert wird
+- **THEN** existieren Stornorechnungen zu seinen Rechnungen, und ein neuer Lauf kann dieselben Zeiträume abrechnen
 
-### Requirement: Scheduled fee run previews (should)
-The system SHALL optionally create fee-run previews on a schedule per organisation (for example monthly on a set day, or N days before each period start) and notify the treasurer; posting SHALL still require a click.
+### Requirement: Geplante Vorschauen von Beitragsläufen (sollte)
+Das System MUSS (SHALL) optional je Verein nach Zeitplan Vorschauen von Beitragsläufen anlegen (zum Beispiel monatlich an einem festen Tag oder N Tage vor jedem Zeitraumbeginn) und die Kassenwart:in benachrichtigen; das Buchen MUSS weiterhin einen Klick erfordern.
 
-#### Scenario: Scheduled preview not posted
-- **WHEN** the schedule fires
-- **THEN** a preview exists, the treasurer is notified and no invoice is issued
+#### Scenario: Geplante Vorschau nicht gebucht
+- **WHEN** der Zeitplan auslöst
+- **THEN** existiert eine Vorschau, die Kassenwart:in ist benachrichtigt, und es wird keine Rechnung ausgestellt
 
-### Requirement: Invoice lifecycle and immutability
-The system SHALL issue invoices of kind membership, other receivable, credit note and cancellation document with lines (text, quantity, unit price in cents, tax rate, ledger account, sphere, cost centre, several tax rates allowed) and states `draft` → `issued` → `open` / `partially_paid` / `paid`, plus `cancelled` and `written_off`; issuing SHALL assign a gapless number from the configured range in the issuing transaction and make the content immutable; corrections SHALL only be made by a cancellation document with its own number range that references the original.
+### Requirement: Lebenszyklus und Unveränderlichkeit von Rechnungen
+Das System MUSS (SHALL) Rechnungen der Art Mitgliedsbeitrag, sonstige Forderung, Gutschrift und Stornorechnung ausstellen, mit Positionen (Text, Menge, Einzelpreis in Cent, Steuersatz, Konto, Sphäre, Kostenstelle, mehrere Steuersätze erlaubt) und den Status `draft` → `issued` → `open` / `partially_paid` / `paid` sowie `cancelled` und `written_off`; das Ausstellen MUSS in derselben Transaktion eine lückenlose Nummer aus dem konfigurierten Nummernkreis vergeben und den Inhalt unveränderlich machen; Korrekturen DÜRFEN NUR per Stornorechnung mit eigenem Nummernkreis und Bezug auf das Original erfolgen.
 
-#### Scenario: Issued invoice cannot change
-- **WHEN** a user edits a line of an issued invoice
-- **THEN** the system refuses and offers a cancellation document
+#### Scenario: Ausgestellte Rechnung unveränderlich
+- **WHEN** eine Benutzer:in eine Position einer ausgestellten Rechnung bearbeitet
+- **THEN** lehnt das System ab und bietet eine Stornorechnung an
 
-#### Scenario: Gapless numbers
-- **WHEN** two invoices are issued concurrently
-- **THEN** they receive consecutive numbers with no gap and no duplicate
+#### Scenario: Lückenlose Nummern
+- **WHEN** zwei Rechnungen gleichzeitig ausgestellt werden
+- **THEN** erhalten sie aufeinanderfolgende Nummern ohne Lücke und ohne Duplikat
 
-### Requirement: Recurring invoice templates
-The system SHALL keep recurring invoice templates with interval in months, next date and end date, and a daily job SHALL create a draft or issue directly as set per template.
+### Requirement: Vorlagen für wiederkehrende Rechnungen
+Das System MUSS (SHALL) Vorlagen für wiederkehrende Rechnungen mit Intervall in Monaten, nächstem Datum und Enddatum führen, und ein täglicher Job MUSS je nach Einstellung der Vorlage einen Entwurf anlegen oder direkt ausstellen.
 
-#### Scenario: Template due
-- **WHEN** a template's next date is today and it is set to "draft"
-- **THEN** the job creates a draft invoice and advances the next date by the interval
+#### Scenario: Vorlage fällig
+- **WHEN** das nächste Datum einer Vorlage heute ist und sie auf „Entwurf“ eingestellt ist
+- **THEN** legt der Job einen Rechnungsentwurf an und rückt das nächste Datum um das Intervall vor
 
-### Requirement: Invoice PDF with EPC QR code
-The system SHALL render issued invoices on the letterhead with an EPC QR code (GiroCode, version 002, BCD) carrying IBAN, amount and the invoice number as reference, store the PDF once with its SHA-256 and never re-render it, so that every re-download returns the same bytes.
+### Requirement: Rechnungs-PDF mit EPC-QR-Code
+Das System MUSS (SHALL) ausgestellte Rechnungen auf dem Briefbogen mit einem EPC-QR-Code (GiroCode, Version 002, BCD) mit IBAN, Betrag und Rechnungsnummer als Verwendungszweck erzeugen, das PDF einmalig mit seinem SHA-256 speichern und nie neu erzeugen, sodass jeder erneute Download dieselben Bytes liefert.
 
-#### Scenario: Same bytes on re-download
-- **WHEN** an issued invoice PDF is downloaded twice, months apart, after a letterhead change
-- **THEN** both downloads have the same SHA-256
+#### Scenario: Dieselben Bytes beim erneuten Download
+- **WHEN** ein ausgestelltes Rechnungs-PDF im Abstand von Monaten und nach einer Briefbogenänderung zweimal heruntergeladen wird
+- **THEN** haben beide Downloads denselben SHA-256
 
-### Requirement: Net or gross prices and cover texts (should)
-The system SHALL let each line's unit price be entered net ("zzgl.") or gross ("inkl.") and let an invoice carry a cover text and a closing text with placeholders.
+### Requirement: Netto- oder Bruttopreise und Begleittexte (sollte)
+Das System MUSS (SHALL) erlauben, den Einzelpreis jeder Position netto ("zzgl.") oder brutto ("inkl.") einzugeben, und einer Rechnung einen Einleitungs- und einen Schlusstext mit Platzhaltern mitzugeben.
 
-#### Scenario: Gross entry
-- **WHEN** a line is entered as 11900 cents gross at 19 %
-- **THEN** the invoice shows 10000 cents net and 1900 cents tax
+#### Scenario: Bruttoeingabe
+- **WHEN** eine Position mit 11900 Cent brutto bei 19 % erfasst wird
+- **THEN** zeigt die Rechnung 10000 Cent netto und 1900 Cent Steuer
 
-### Requirement: Open items and dunning
-The system SHALL list open and partially paid receivables and payables with recipient, date, number, amount, open amount (computed from allocations, never edited), due date, dunning level, last dunning date and collection-run state; dunning levels (delay days, fee, letter template) SHALL be configured per organisation; "propose dunning" SHALL list invoices that reached the next level, and applying a level (creating a `dunning_event`) and sending it SHALL be separate visible steps; a dunning fee SHALL be a new line or a separate invoice, never an edit of the issued invoice.
+### Requirement: Offene Posten und Mahnwesen
+Das System MUSS (SHALL) offene und teilbezahlte Forderungen und Verbindlichkeiten mit Empfänger:in, Datum, Nummer, Betrag, offenem Betrag (aus Zuordnungen berechnet, nie bearbeitet), Fälligkeit, Mahnstufe, letztem Mahndatum und Einzugsstatus auflisten; Mahnstufen (Verzugstage, Gebühr, Briefvorlage) MÜSSEN je Verein konfigurierbar sein; „Mahnvorschlag“ MUSS Rechnungen listen, die die nächste Stufe erreicht haben, und das Anwenden einer Stufe (Anlegen eines `dunning_event`) und das Versenden MÜSSEN getrennte, sichtbare Schritte sein; eine Mahngebühr MUSS eine neue Position oder Rechnung sein, nie eine Änderung der ausgestellten Rechnung.
 
-#### Scenario: Dunning proposal
-- **WHEN** an invoice is 14 days overdue and level 1 has 14 delay days
-- **THEN** it appears in "propose dunning" for level 1
+#### Scenario: Mahnvorschlag
+- **WHEN** eine Rechnung 14 Tage überfällig ist und Stufe 1 14 Verzugstage hat
+- **THEN** erscheint sie in „Mahnvorschlag“ für Stufe 1
 
-#### Scenario: Fee as separate document
-- **WHEN** a level with a 500-cent fee is applied
-- **THEN** the fee is added as a new invoice or line and the original issued invoice is unchanged
+#### Scenario: Gebühr als eigenes Dokument
+- **WHEN** eine Stufe mit 500 Cent Gebühr angewendet wird
+- **THEN** wird die Gebühr als neue Rechnung oder Position hinzugefügt, und die ursprüngliche ausgestellte Rechnung bleibt unverändert
 
-### Requirement: Dunning hold (should)
-The system SHALL let dunning be put on hold for an invoice until a date with a reason, and held invoices SHALL be left out of "propose dunning" until then.
+### Requirement: Mahnpause (sollte)
+Das System MUSS (SHALL) erlauben, das Mahnwesen für eine Rechnung bis zu einem Datum mit Begründung zu pausieren, und pausierte Rechnungen MÜSSEN bis dahin in „Mahnvorschlag“ fehlen.
 
-#### Scenario: Held invoice
-- **WHEN** an invoice is on hold until 30 June
-- **THEN** it does not appear in "propose dunning" before 30 June
+#### Scenario: Pausierte Rechnung
+- **WHEN** eine Rechnung bis 30. Juni pausiert ist
+- **THEN** erscheint sie vor dem 30. Juni nicht in „Mahnvorschlag“
 
-### Requirement: Write-off
-The system SHALL write off the open amount of an invoice with a reason by booking it to a configurable account and moving the invoice to `written_off`, reversible only by a reversal entry.
+### Requirement: Ausbuchung
+Das System MUSS (SHALL) den offenen Betrag einer Rechnung mit Begründung ausbuchen, indem es ihn auf ein konfigurierbares Konto bucht und die Rechnung auf `written_off` setzt; dies ist nur per Storno (Gegenbuchung) umkehrbar.
 
-#### Scenario: Uncollectible amount
-- **WHEN** a treasurer writes off an open amount of 4500 cents with reason "Mitglied verzogen, unbekannt"
-- **THEN** 4500 cents are booked to the write-off account and the invoice is `written_off`
+#### Scenario: Uneinbringlicher Betrag
+- **WHEN** eine Kassenwart:in einen offenen Betrag von 4500 Cent mit der Begründung "Mitglied verzogen, unbekannt" ausbucht
+- **THEN** werden 4500 Cent auf das Ausbuchungskonto gebucht, und die Rechnung ist `written_off`
 
-### Requirement: Zero-amount lines are recorded without an invoice
-The system SHALL record assessments for preview lines of 0 cents (for example honorary members) so the period counts as billed, but SHALL NOT issue an invoice whose total is 0 cents; the preview SHALL warn about such members.
+### Requirement: Nullbetragspositionen werden ohne Rechnung erfasst
+Das System MUSS (SHALL) für Vorschaupositionen mit 0 Cent (zum Beispiel Ehrenmitglieder) Forderungen erfassen, damit der Zeitraum als abgerechnet gilt, DARF aber KEINE Rechnung mit Gesamtbetrag 0 Cent ausstellen; die Vorschau MUSS vor solchen Mitgliedern warnen.
 
-#### Scenario: Honorary member
-- **WHEN** a fee run posts a member whose only line is 0 cents
-- **THEN** an assessment exists for the period and no invoice is issued
+#### Scenario: Ehrenmitglied
+- **WHEN** ein Beitragslauf ein Mitglied bucht, dessen einzige Position 0 Cent beträgt
+- **THEN** existiert eine Forderung für den Zeitraum, und es wird keine Rechnung ausgestellt
 
-### Requirement: PDF frozen at issue
-The system SHALL freeze the recipient address and the letterhead into the invoice when it is issued, render the PDF from that snapshot (at issue or on first download), store it once with its SHA-256, and refuse any later change of the stored bytes.
+### Requirement: PDF beim Ausstellen eingefroren
+Das System MUSS (SHALL) Empfängeradresse und Briefbogen beim Ausstellen in die Rechnung einfrieren, das PDF aus diesem Snapshot erzeugen (beim Ausstellen oder beim ersten Download), es einmalig mit seinem SHA-256 speichern und jede spätere Änderung der gespeicherten Bytes ablehnen.
 
-#### Scenario: Letterhead changed after issue
-- **WHEN** the club name changes after an invoice was issued and its PDF is downloaded again
-- **THEN** the bytes are identical to the first download and show the old name
+#### Scenario: Briefbogen nach dem Ausstellen geändert
+- **WHEN** sich der Vereinsname ändert, nachdem eine Rechnung ausgestellt wurde, und ihr PDF erneut heruntergeladen wird
+- **THEN** sind die Bytes identisch mit dem ersten Download und zeigen den alten Namen
 
-### Requirement: Payments cannot exceed the open amount
-The system SHALL refuse a manual payment larger than the open amount of the invoice, SHALL recompute the paid amount and status (`open`, `partially_paid`, `paid`, `written_off`) from confirmed allocations after every payment, write-off or reversal, and SHALL refuse to cancel an invoice while confirmed payments are allocated to it.
+### Requirement: Zahlungen dürfen den offenen Betrag nicht übersteigen
+Das System MUSS (SHALL) eine manuelle Zahlung ablehnen, die den offenen Betrag der Rechnung übersteigt, MUSS bezahlten Betrag und Status (`open`, `partially_paid`, `paid`, `written_off`) nach jeder Zahlung, Ausbuchung oder Gegenbuchung aus bestätigten Zuordnungen neu berechnen und MUSS das Stornieren einer Rechnung ablehnen, solange ihr bestätigte Zahlungen zugeordnet sind.
 
-#### Scenario: Overpayment
-- **WHEN** a treasurer records 6000 cents on an invoice with 5000 cents open
-- **THEN** the request is refused with a field error and nothing is booked
+#### Scenario: Überzahlung
+- **WHEN** eine Kassenwart:in 6000 Cent auf eine Rechnung mit 5000 Cent offenem Betrag erfasst
+- **THEN** wird die Anfrage mit einem Feldfehler abgelehnt, und nichts wird gebucht
 
-### Requirement: Article catalogue
-The system SHALL keep a catalogue of articles with gross price and VAT rate that can be picked into invoice lines, copying their values so later changes never alter existing invoices.
+### Requirement: Artikelkatalog
+Das System MUSS (SHALL) einen Katalog von Artikeln mit Bruttopreis und Umsatzsteuersatz führen, die in Rechnungspositionen übernommen werden können, wobei ihre Werte kopiert werden, sodass spätere Änderungen bestehende Rechnungen nie verändern.
 
-#### Scenario: Price change
-- **WHEN** an article's price changes after it was used on an issued invoice
-- **THEN** the issued invoice keeps the old price
+#### Scenario: Preisänderung
+- **WHEN** sich der Preis eines Artikels ändert, nachdem er auf einer ausgestellten Rechnung verwendet wurde
+- **THEN** behält die ausgestellte Rechnung den alten Preis
 

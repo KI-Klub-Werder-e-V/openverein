@@ -1,15 +1,15 @@
 {
   "name": "openverein",
   "version": "1.0.0",
-  "description": "Connects Claude Code to an OpenVerein club over MCP (OAuth sign-in, no token in any file) and teaches the agent how to use it.",
+  "description": "Verbindet Claude Code über MCP mit Deinem Verein in OpenVerein (Anmeldung per OAuth, kein Token in einer Datei) und bringt dem Agenten bei, damit zu arbeiten.",
   "author": {
     "name": "OpenVerein",
-    "url": "https://github.com/krautdawg/openverein"
+    "url": "https://github.com/KI-Klub-Werder-e-V/openverein"
   },
-  "homepage": "https://github.com/krautdawg/openverein#mit-claude-code-verbinden",
-  "repository": "https://github.com/krautdawg/openverein",
+  "homepage": "https://github.com/KI-Klub-Werder-e-V/openverein#mit-claude-code-verbinden",
+  "repository": "https://github.com/KI-Klub-Werder-e-V/openverein",
   "license": "AGPL-3.0-only",
-  "privacyPolicyUrl": "https://github.com/krautdawg/openverein/blob/main/plugins/openverein/README.md#privacy",
+  "privacyPolicyUrl": "https://github.com/KI-Klub-Werder-e-V/openverein/blob/main/plugins/openverein/README.md#privacy",
   "userConfig": {
     "club_url": {
       "type": "string",

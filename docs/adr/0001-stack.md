@@ -1,27 +1,27 @@
-# ADR 0001: Stack for the first release
+# ADR 0001: Stack für das erste Release
 
-Date: 2026-10-24. Status: accepted.
+Datum: 2026-10-24. Status: angenommen.
 
-## Context
+## Kontext
 
-Deliverable A (`saaskiller/easyverein/deliverables/A-architecture-plan.md`, kept outside this repository) proposes Node 24, NestJS on Fastify, React 19 + Vite with TanStack Router/Query/Table, PostgreSQL 18 with Kysely, RLS, pg-boss, Better Auth, Typst, Caddy and an `ovctl` CLI. The owner asked for the simplest option wherever A over-engineers a first release.
+Deliverable A (`saaskiller/easyverein/deliverables/A-architecture-plan.md`, liegt außerhalb dieses Repositorys) schlägt Node 24, NestJS auf Fastify, React 19 + Vite mit TanStack Router/Query/Table, PostgreSQL 18 mit Kysely, RLS, pg-boss, Better Auth, Typst, Caddy und eine `ovctl`-CLI vor. Der Eigentümer hat sich überall dort die einfachste Lösung gewünscht, wo A für ein erstes Release zu viel baut.
 
-## Decision
+## Entscheidung
 
-| Area | A says | We do | Why |
+| Bereich | A sagt | Wir machen | Warum |
 |---|---|---|---|
-| Backend framework | NestJS on Fastify | Plain Fastify 5 with `fastify-type-provider-zod` | Zod schemas validate input, generate OpenAPI and are shared with the web app. No DI container needed. |
-| Build | compiled TypeScript | Node 24 runs `.ts` directly (type stripping, `erasableSyntaxOnly`) | No server build step; Vite builds only the web app. |
-| Auth | Better Auth | Own session auth (argon2id, hashed session tokens, HttpOnly cookie) | ~150 lines, fully tested. Reconsider Better Auth when TOTP, passkeys or OIDC are built. |
-| Tenancy | `organization_id` + RLS | `organization_id` on every row, filtered in code, one organisation per install | RLS arrives with managed multi-tenant hosting (A, Phase 2). |
-| Router | TanStack Router | React Router (declarative mode) | Fewer moving parts, no code generation. |
-| Styling | not specified | Plain CSS with design tokens | One tokens file, one stylesheet; no utility framework. |
-| Jobs | pg-boss + outbox | Added by the first slice that needs background work | Nothing in slice 0 runs in the background. |
-| Proxy, ops | Caddy + `ovctl` | Docker image + Compose; TLS by the operator's proxy | `ovctl` is post-MVP operations work. |
-| Mobile | PWA only (A excludes native apps) | Capacitor wrapper around the same web build, built by Codemagic | Owner's instruction; no native code beyond what Capacitor needs. |
+| Backend-Framework | NestJS auf Fastify | Schlichtes Fastify 5 mit `fastify-type-provider-zod` | Zod-Schemas prüfen Eingaben, erzeugen OpenAPI und werden mit der Web-App geteilt. Kein DI-Container nötig. |
+| Build | kompiliertes TypeScript | Node 24 führt `.ts` direkt aus (Type Stripping, `erasableSyntaxOnly`) | Kein Build-Schritt für den Server; Vite baut nur die Web-App. |
+| Auth | Better Auth | Eigene Session-Authentifizierung (argon2id, gehashte Session-Tokens, HttpOnly-Cookie) | ~150 Zeilen, vollständig getestet. Better Auth neu prüfen, sobald TOTP, Passkeys oder OIDC gebaut werden. |
+| Mandantenfähigkeit | `organization_id` + RLS | `organization_id` in jeder Zeile, im Code gefiltert, ein Verein pro Installation | RLS kommt mit dem verwalteten Multi-Tenant-Hosting (A, Phase 2). |
+| Router | TanStack Router | React Router (deklarativer Modus) | Weniger bewegliche Teile, keine Codegenerierung. |
+| Styling | nicht festgelegt | Schlichtes CSS mit Design-Tokens | Eine Token-Datei, ein Stylesheet; kein Utility-Framework. |
+| Jobs | pg-boss + Outbox | Kommt mit dem ersten Slice, der Hintergrundarbeit braucht | In Slice 0 läuft nichts im Hintergrund. |
+| Proxy, Betrieb | Caddy + `ovctl` | Docker-Image + Compose; TLS über den Proxy des Betreibers | `ovctl` ist Betriebsarbeit nach dem MVP. |
+| Mobil | nur PWA (A schließt native Apps aus) | Capacitor-Hülle um denselben Web-Build, gebaut von Codemagic | Vorgabe des Eigentümers; kein nativer Code über das hinaus, was Capacitor braucht. |
 
-Kept from A: PostgreSQL 18 (`uuidv7()`), Kysely with forward-only SQL migrations, REST + OpenAPI 3.1, RFC 9457 errors, integer cents, append-only audit log enforced by a trigger, German-first UI.
+Von A übernommen: PostgreSQL 18 (`uuidv7()`), Kysely mit reinen Vorwärts-SQL-Migrationen, REST + OpenAPI 3.1, Fehler nach RFC 9457, ganzzahlige Cents, ein per Trigger erzwungenes, nur anhängbares Audit-Log, deutschsprachige Oberfläche zuerst.
 
-## Consequences
+## Konsequenzen
 
-Later slices add dependencies only when a feature needs them, and record each deviation here or in a new ADR.
+Spätere Slices fügen Abhängigkeiten nur hinzu, wenn ein Feature sie braucht, und halten jede Abweichung hier oder in einem neuen ADR fest.

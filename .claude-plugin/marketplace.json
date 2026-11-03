@@ -2,16 +2,16 @@
   "name": "openverein",
   "owner": {
     "name": "OpenVerein",
-    "url": "https://github.com/krautdawg/openverein"
+    "url": "https://github.com/KI-Klub-Werder-e-V/openverein"
   },
   "metadata": {
-    "description": "OpenVerein, open-source club management for German e.V. clubs: connect Claude Code to your club."
+    "description": "OpenVerein, die Open-Source-Vereinsverwaltung für eingetragene Vereine: Verbinde Claude Code mit Deinem Verein."
   },
   "plugins": [
     {
       "name": "openverein",
       "source": "./plugins/openverein",
-      "description": "Connects Claude Code to an OpenVerein club (MCP with OAuth): members see their portal, the club administration works with its own rights."
+      "description": "Verbindet Claude Code mit Deinem Verein in OpenVerein (MCP mit OAuth): Mitglieder sehen ihr Portal, die Vereinsverwaltung arbeitet mit ihren eigenen Rechten."
     }
   ]
 }

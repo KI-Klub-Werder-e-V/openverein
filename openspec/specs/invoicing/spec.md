@@ -1,26 +1,26 @@
 # invoicing Specification
 
 ## Purpose
-TBD - created by archiving change invoice-texts. Update Purpose after archive.
+TBD – entstanden durch Archivierung der Änderung invoice-texts. Purpose nach der Archivierung aktualisieren.
 ## Requirements
-### Requirement: Invoice texts
-The system SHALL fill the invoice's own cover and closing texts, or else the club's defaults, at issue and SHALL keep them unchanged afterwards.
+### Requirement: Rechnungstexte
+Das System MUSS (SHALL) beim Ausstellen die eigenen Einleitungs- und Schlusstexte der Rechnung, andernfalls die Standardtexte des Vereins, einsetzen und sie danach unverändert lassen.
 
-#### Scenario: Default closing text
-- **WHEN** the club's closing text is "Bitte zahle {{betrag}} bis {{faellig}}." and an invoice of 50 € due 01.07.2026 is issued
-- **THEN** the invoice's closing text reads "Bitte zahle 50,00 € bis 01.07.2026." and a later change is refused by the database
+#### Scenario: Standard-Schlusstext
+- **WHEN** der Schlusstext des Vereins "Bitte zahle {{betrag}} bis {{faellig}}." lautet und eine Rechnung über 50 €, fällig am 01.07.2026, ausgestellt wird
+- **THEN** lautet der Schlusstext der Rechnung "Bitte zahle 50,00 € bis 01.07.2026." und eine spätere Änderung wird von der Datenbank abgelehnt
 
-### Requirement: Net prices
-The system SHALL accept a line's unit price as net and store it gross, rounded to the cent.
+### Requirement: Nettopreise
+Das System MUSS (SHALL) den Einzelpreis einer Position als Nettopreis annehmen und ihn brutto, auf den Cent gerundet, speichern.
 
-#### Scenario: Net price at 19 %
-- **WHEN** a line with a net unit price of 42,02 € and 19 % tax is saved
-- **THEN** its unit price is 50,00 €
+#### Scenario: Nettopreis zu 19 %
+- **WHEN** eine Position mit einem Netto-Einzelpreis von 42,02 € und 19 % Steuer gespeichert wird
+- **THEN** beträgt ihr Einzelpreis 50,00 €
 
-### Requirement: Offers
-The system SHALL issue offers with their own number range and a stored PDF, keep issued offers unchanged, and convert an offer at most once into an invoice draft with the same lines, without any ledger effect of the offer itself.
+### Requirement: Angebote
+Das System MUSS (SHALL) Angebote mit eigenem Nummernkreis und gespeichertem PDF ausstellen, ausgestellte Angebote unverändert lassen und ein Angebot höchstens einmal in einen Rechnungsentwurf mit denselben Positionen umwandeln, ohne dass das Angebot selbst eine Buchung auslöst.
 
-#### Scenario: Convert an accepted offer
-- **WHEN** an issued offer is accepted and converted
-- **THEN** an invoice draft with the offer's lines exists, and a second conversion is refused
+#### Scenario: Angenommenes Angebot umwandeln
+- **WHEN** ein ausgestelltes Angebot angenommen und umgewandelt wird
+- **THEN** existiert ein Rechnungsentwurf mit den Positionen des Angebots und eine zweite Umwandlung wird abgelehnt
 

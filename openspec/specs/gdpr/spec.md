@@ -1,86 +1,86 @@
 # gdpr Specification
 
 ## Purpose
-The gdpr capability covers consent records, retention classes, anonymisation that keeps the books intact, legal holds, the machine-readable data subject access export, coverage of raw stores, erasure that survives backup restores, and the DPO and DPIA checks in the first-run checklist (B M36). Items that B rates "should" or "could" are marked as such in the requirement name; everything else is MVP behaviour.
+Die Capability gdpr umfasst Einwilligungsnachweise, Aufbewahrungsklassen, eine Anonymisierung, die die Bücher intakt lässt, Löschsperren (Legal Hold), den maschinenlesbaren Auskunftsexport für Betroffene, die Abdeckung von Rohdatenspeichern, eine Löschung, die Backup-Wiederherstellungen übersteht, sowie die Prüfungen zu Datenschutzbeauftragten (DSB) und Datenschutz-Folgenabschätzung (DSFA) in der Checkliste für die Ersteinrichtung (B M36). Punkte, die B mit „sollte“ oder „könnte“ bewertet, sind im Namen der Anforderung entsprechend gekennzeichnet; alles andere ist MVP-Verhalten.
 ## Requirements
-### Requirement: Consent records
-The system SHALL record consents per person and purpose (for example newsletter, photos on the website) with granted and withdrawn timestamps, source (application form, portal, paper) and text version.
+### Requirement: Einwilligungsnachweise
+Das System MUSS (SHALL) Einwilligungen pro Person und Zweck (zum Beispiel Rundschreiben, Fotos auf der Website) mit Zeitpunkten von Erteilung und Widerruf, Quelle (Aufnahmeantrag, Portal, Papier) und Textversion erfassen.
 
-#### Scenario: Withdrawal
-- **WHEN** a member withdraws newsletter consent in the portal
-- **THEN** the withdrawal time and source are recorded and the member is excluded from newsletter mails
+#### Scenario: Widerruf
+- **WHEN** ein Mitglied seine Einwilligung zum Rundschreiben im Portal widerruft
+- **THEN** werden Zeitpunkt und Quelle des Widerrufs erfasst und das Mitglied wird von Rundschreiben-E-Mails ausgeschlossen
 
-### Requirement: Retention classes
-The system SHALL assign every record type a retention class with defaults from § 147 AO (books and records 10 years, vouchers 8 years, other listed documents 6 years) and mandates at least 14 months after the last collection, and show the legal basis of each default in the settings.
+### Requirement: Aufbewahrungsklassen
+Das System MUSS (SHALL) jedem Datensatztyp eine Aufbewahrungsklasse zuweisen, mit Standardwerten nach § 147 AO (Bücher und Aufzeichnungen 10 Jahre, Belege 8 Jahre, sonstige aufgeführte Unterlagen 6 Jahre) und für SEPA-Mandate mindestens 14 Monate nach dem letzten Einzug, und in den Einstellungen die Rechtsgrundlage jedes Standardwerts anzeigen.
 
-#### Scenario: Legal basis shown
-- **WHEN** an admin opens retention settings
-- **THEN** each class shows its period and legal basis
+#### Scenario: Rechtsgrundlage wird angezeigt
+- **WHEN** ein Admin die Einstellungen zur Aufbewahrung öffnet
+- **THEN** zeigt jede Klasse ihre Frist und ihre Rechtsgrundlage
 
-### Requirement: Retention review and erasure
-The system SHALL list persons and records due for erasure for review and erase them on confirmation, or automatically when the organisation enables that setting.
+### Requirement: Prüfung der Aufbewahrung und Löschung
+Das System MUSS (SHALL) Personen und Datensätze, deren Löschung fällig ist, zur Prüfung auflisten und sie nach Bestätigung löschen, oder automatisch, wenn die Organisation diese Einstellung aktiviert.
 
-#### Scenario: Review list
-- **WHEN** the retention job runs
-- **THEN** records past their retention appear in a review list and nothing is erased without confirmation unless automatic mode is on
+#### Scenario: Prüfliste
+- **WHEN** der Aufbewahrungs-Job läuft
+- **THEN** erscheinen Datensätze mit abgelaufener Aufbewahrungsfrist in einer Prüfliste und ohne Bestätigung wird nichts gelöscht, außer der automatische Modus ist aktiv
 
-### Requirement: Anonymisation
-The system SHALL anonymise a person by erasing or replacing profile fields, contact data, custom fields and files while financial documents keep their identity snapshot until their own retention ends and the person row keeps an opaque id; anonymisation SHALL be blocked while open items or active mandates exist.
+### Requirement: Anonymisierung
+Das System MUSS (SHALL) eine Person anonymisieren, indem Profilfelder, Kontaktdaten, benutzerdefinierte Felder und Dateien gelöscht oder ersetzt werden, während Finanzdokumente ihren Identitäts-Snapshot bis zum Ende ihrer eigenen Aufbewahrungsfrist behalten und der Personendatensatz eine opake ID behält; solange offene Posten oder aktive Mandate bestehen, MUSS die Anonymisierung gesperrt sein.
 
-#### Scenario: Blocked by open item
-- **WHEN** an admin anonymises a person with an open invoice
-- **THEN** the system refuses and names the open item
+#### Scenario: Durch offenen Posten blockiert
+- **WHEN** ein Admin eine Person mit einer offenen Rechnung anonymisiert
+- **THEN** lehnt das System ab und nennt den offenen Posten
 
-#### Scenario: Invoice keeps snapshot
-- **WHEN** a former member without open items is anonymised
-- **THEN** the profile shows no personal data and their issued invoices still show the original name and address
+#### Scenario: Rechnung behält Snapshot
+- **WHEN** ein ehemaliges Mitglied ohne offene Posten anonymisiert wird
+- **THEN** zeigt das Profil keine personenbezogenen Daten und die ausgestellten Rechnungen zeigen weiterhin den ursprünglichen Namen und die ursprüngliche Adresse
 
-### Requirement: Legal hold
-The system SHALL let authorised users set a legal hold on a person or record, which blocks erasure and anonymisation until released.
+### Requirement: Löschsperre (Legal Hold)
+Das System MUSS (SHALL) berechtigten Benutzer:innen erlauben, eine Löschsperre (Legal Hold) auf eine Person oder einen Datensatz zu setzen, die Löschung und Anonymisierung bis zur Aufhebung verhindert.
 
-#### Scenario: Hold blocks erasure
-- **WHEN** a person under legal hold is due for erasure
-- **THEN** the person is skipped and listed with the hold reason
+#### Scenario: Löschsperre verhindert Löschung
+- **WHEN** die Löschung einer Person unter Löschsperre fällig ist
+- **THEN** wird die Person übersprungen und mit dem Grund der Sperre aufgeführt
 
-### Requirement: Data subject access export
-The system SHALL produce for one person a ZIP with machine-readable JSON and a human-readable PDF of all data about them, including consents, memberships, invoices, donations, mails sent and audit entries about them, run as a job that tracks the one-month deadline; the same data sheet SHALL be available as a bulk action.
+### Requirement: Auskunftsexport für Betroffene
+Das System MUSS (SHALL) für eine Person ein ZIP mit maschinenlesbarem JSON und einem menschenlesbaren PDF aller Daten über sie erzeugen, einschließlich Einwilligungen, Mitgliedschaften, Rechnungen, Spenden, versendeter E-Mails und Audit-Einträgen über sie, ausgeführt als Job, der die Monatsfrist überwacht; dasselbe Datenblatt MUSS als Massenaktion verfügbar sein.
 
-#### Scenario: Complete export
-- **WHEN** an admin starts an access export for a member
-- **THEN** the ZIP contains JSON and PDF covering profile, consents, memberships, invoices, donations, deliveries and audit entries
+#### Scenario: Vollständiger Export
+- **WHEN** ein Admin einen Auskunftsexport für ein Mitglied startet
+- **THEN** enthält das ZIP JSON und PDF mit Profil, Einwilligungen, Mitgliedschaften, Rechnungen, Spenden, Zustellungen und Audit-Einträgen
 
-### Requirement: Raw stores covered
-The system SHALL include raw stores in the erasure registry: bank `raw` JSON and stored SEPA and CAMT files are encrypted and kept with voucher retention, and importer payloads are purged 90 days after the import sign-off.
+### Requirement: Rohdatenspeicher sind erfasst
+Das System MUSS (SHALL) Rohdatenspeicher in das Löschregister aufnehmen: Bank-`raw`-JSON sowie gespeicherte SEPA- und CAMT-Dateien werden verschlüsselt und mit der Aufbewahrungsfrist für Belege aufbewahrt, und Importer-Nutzdaten werden 90 Tage nach der Freigabe des Imports gelöscht.
 
-#### Scenario: Importer payload purge
-- **WHEN** 90 days have passed since the reconciliation sign-off
-- **THEN** raw importer payloads are deleted while source and target ids remain
+#### Scenario: Bereinigung der Importdaten
+- **WHEN** seit der Freigabe des Abgleichs 90 Tage vergangen sind
+- **THEN** werden die rohen Importer-Nutzdaten gelöscht, während Quell- und Ziel-IDs erhalten bleiben
 
-### Requirement: Erasure survives restore
-The system SHALL write an erasure log entry with opaque ids only for every erasure, and `ovctl restore` SHALL replay the erasure log before the application starts, so that restoring an older backup does not bring erased persons back.
+### Requirement: Löschung übersteht Wiederherstellung
+Das System MUSS (SHALL) für jede Löschung einen Eintrag im Löschprotokoll schreiben, der nur opake IDs enthält, und `ovctl restore` MUSS das Löschprotokoll vor dem Start der Anwendung erneut anwenden, damit die Wiederherstellung eines älteren Backups gelöschte Personen nicht zurückbringt.
 
-#### Scenario: Restore older backup
-- **WHEN** a backup taken before a person's anonymisation is restored
-- **THEN** the person is anonymised again before the application accepts requests
+#### Scenario: Älteres Backup wiederherstellen
+- **WHEN** ein Backup wiederhergestellt wird, das vor der Anonymisierung einer Person erstellt wurde
+- **THEN** wird die Person erneut anonymisiert, bevor die Anwendung Anfragen annimmt
 
-### Requirement: DPO and DPIA checks
-The system SHALL warn in the first-run checklist when 15 or more users hold member read rights (DPO requirement under § 38 BDSG) and SHALL ask for a DPIA with a pre-filled template when custom fields are flagged as health data or members under 16 exist.
+### Requirement: Prüfungen zu DSB und DSFA
+Das System MUSS (SHALL) in der Checkliste für die Ersteinrichtung warnen, wenn 15 oder mehr Benutzer:innen Leserechte für Mitglieder haben (Pflicht zur Benennung eines DSB nach § 38 BDSG), und MUSS eine DSFA mit vorausgefüllter Vorlage anfordern, wenn benutzerdefinierte Felder als Gesundheitsdaten markiert sind oder Mitglieder unter 16 Jahren existieren.
 
-#### Scenario: DPO warning
-- **WHEN** the 15th user with member read rights is created
-- **THEN** the checklist shows the DPO warning
+#### Scenario: DSB-Warnung
+- **WHEN** die 15. Person mit Leserechten für Mitglieder als Benutzer:in angelegt wird
+- **THEN** zeigt die Checkliste die DSB-Warnung
 
-### Requirement: Only necessary cookies
-The system SHALL set only strictly necessary cookies (session, CSRF, locale) and load no third-party resources, so that no consent banner is needed.
+### Requirement: Nur notwendige Cookies
+Das System MUSS (SHALL) ausschließlich technisch notwendige Cookies (Sitzung, CSRF, Sprache) setzen und keine Ressourcen von Dritten laden, damit kein Einwilligungsbanner nötig ist.
 
-#### Scenario: Cookie inventory
-- **WHEN** a visitor opens the public application form
-- **THEN** no cookie other than the necessary ones is set
+#### Scenario: Cookie-Verzeichnis
+- **WHEN** eine Besucherin oder ein Besucher das öffentliche Aufnahmeformular öffnet
+- **THEN** wird außer den notwendigen Cookies kein Cookie gesetzt
 
-### Requirement: Erasure replay at start-up
-The system SHALL append each erasure (organisation id, person id, time) to a file beside the stored files and, at start-up before accepting requests, anonymise again every listed person that is present and not anonymised.
+### Requirement: Erneutes Anwenden von Löschungen beim Start
+Das System MUSS (SHALL) jede Löschung (Organisations-ID, Personen-ID, Zeitpunkt) an eine Datei neben den gespeicherten Dateien anhängen und beim Start, bevor Anfragen angenommen werden, jede aufgeführte Person erneut anonymisieren, die vorhanden und nicht anonymisiert ist.
 
-#### Scenario: Restored backup
-- **WHEN** the database is restored from a backup taken before a person was anonymised and the server starts
-- **THEN** the person is anonymised again before the first request is served
+#### Scenario: Wiederhergestelltes Backup
+- **WHEN** die Datenbank aus einem Backup wiederhergestellt wird, das erstellt wurde, bevor eine Person anonymisiert wurde, und der Server startet
+- **THEN** wird die Person erneut anonymisiert, bevor die erste Anfrage beantwortet wird
 

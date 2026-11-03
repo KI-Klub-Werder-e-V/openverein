@@ -1,145 +1,145 @@
 # groups-and-roles Specification
 
 ## Purpose
-The groups-and-roles capability covers groups and divisions with dated membership, roles and permissions by module, division scope and field level including the built-in tax-adviser and cash-auditor roles, and the append-only audit log (B M04, M32, M35). Items that B rates "should" or "could" are marked as such in the requirement name; everything else is MVP behaviour.
+Die Capability groups-and-roles umfasst Gruppen und Abteilungen mit datierter Zugehörigkeit, Rollen und Berechtigungen nach Modul, Abteilungsbereich und Feldebene einschließlich der eingebauten Rollen Steuerberater:in und Kassenprüfer:in sowie das nur fortschreibbare Audit-Protokoll (B M04, M32, M35). Punkte, die B als „sollte“ oder „könnte“ einstuft, sind im Namen der Anforderung entsprechend markiert; alles andere ist MVP-Verhalten.
 ## Requirements
-### Requirement: Groups and divisions
-The system SHALL support groups of kind `division`, `segment`, `board` and `team`, each with name, unique short code, colour shown as a badge in lists, an optional parent group (one level) and a flag for offering the group in the public application form.
+### Requirement: Gruppen und Abteilungen
+Das System MUSS (SHALL) Gruppen der Art `division`, `segment`, `board` und `team` unterstützen, jeweils mit Name, eindeutigem Kürzel, einer Farbe, die in Listen als Badge erscheint, einer optionalen übergeordneten Gruppe (eine Ebene) und einem Schalter, ob die Gruppe im öffentlichen Aufnahmeantrag angeboten wird.
 
-#### Scenario: Unique short code
-- **WHEN** an admin creates a group with a short code that already exists in the organisation
-- **THEN** the system rejects it
+#### Scenario: Eindeutiges Kürzel
+- **WHEN** ein Admin eine Gruppe mit einem Kürzel anlegt, das im Verein bereits existiert
+- **THEN** lehnt das System sie ab
 
-#### Scenario: Badge in list
-- **WHEN** the member list shows a member of group "Jugend"
-- **THEN** a badge in the group's colour is shown
+#### Scenario: Badge in der Liste
+- **WHEN** die Mitgliederliste ein Mitglied der Gruppe "Jugend" zeigt
+- **THEN** wird ein Badge in der Farbe der Gruppe angezeigt
 
-### Requirement: Dated group membership
-The system SHALL record each group membership with `valid_from` and optional `valid_to`, reject overlapping memberships of the same member in the same group, show the group change history on the member profile, and answer membership questions for any date.
+### Requirement: Datierte Gruppenzugehörigkeit
+Das System MUSS (SHALL) jede Gruppenzugehörigkeit mit `valid_from` und optionalem `valid_to` erfassen, überlappende Zugehörigkeiten desselben Mitglieds in derselben Gruppe ablehnen, den Verlauf der Gruppenwechsel im Mitgliedsprofil zeigen und Fragen zur Zugehörigkeit für jedes beliebige Datum beantworten.
 
-#### Scenario: Overlap rejected
-- **WHEN** a member already in "U17" from 1 January with no end is added again from 1 March
-- **THEN** the second membership is rejected
+#### Scenario: Überlappung abgelehnt
+- **WHEN** ein Mitglied, das ab 1. Januar ohne Ende in "U17" ist, ab 1. März erneut hinzugefügt wird
+- **THEN** wird die zweite Zugehörigkeit abgelehnt
 
-#### Scenario: Membership on a date
-- **WHEN** an admin lists group "U17" on 1 March 2026
-- **THEN** exactly the members whose membership spans that date are shown
+#### Scenario: Zugehörigkeit an einem Datum
+- **WHEN** ein Admin die Gruppe "U17" zum 1. März 2026 auflistet
+- **THEN** werden genau die Mitglieder gezeigt, deren Zugehörigkeit dieses Datum umfasst
 
-### Requirement: Admin-only groups
-The system SHALL let a group be marked "admins only"; such a group SHALL never appear in the member portal, in member-facing documents or in mails to the member.
+### Requirement: Gruppen nur für Admins
+Das System MUSS (SHALL) erlauben, eine Gruppe als „nur Admins“ zu kennzeichnen; eine solche Gruppe DARF NIE im Mitgliederportal, in Dokumenten für Mitglieder oder in E-Mails an das Mitglied erscheinen.
 
-#### Scenario: Hidden in portal
-- **WHEN** a member of the admins-only group "Mahnliste" opens "my groups" in the portal
-- **THEN** that group is not listed
+#### Scenario: Im Portal verborgen
+- **WHEN** ein Mitglied der Nur-Admin-Gruppe "Mahnliste" im Portal „Meine Gruppen“ öffnet
+- **THEN** wird diese Gruppe nicht aufgeführt
 
-### Requirement: Groups do not carry fees
-The system SHALL keep fees out of groups; a group MAY suggest a default fee plan that is applied as a separate fee assignment only after confirmation when a member joins the group.
+### Requirement: Gruppen tragen keine Beiträge
+Das System MUSS (SHALL) Beiträge von Gruppen getrennt halten; eine Gruppe DARF eine Standard-Beitragsart vorschlagen, die beim Eintritt eines Mitglieds in die Gruppe erst nach Bestätigung als eigene Beitragszuordnung angelegt wird.
 
-#### Scenario: Suggested fee plan
-- **WHEN** a member is added to a group with a default fee plan
-- **THEN** the admin is asked to confirm creating the fee assignment, and nothing is assigned without confirmation
+#### Scenario: Vorgeschlagene Beitragsart
+- **WHEN** ein Mitglied einer Gruppe mit Standard-Beitragsart hinzugefügt wird
+- **THEN** wird der Admin gebeten, das Anlegen der Beitragszuordnung zu bestätigen, und ohne Bestätigung wird nichts zugeordnet
 
-### Requirement: Module permissions and built-in roles
-The system SHALL grant `none`, `read` or `write` per module (members, persons, groups, fees, invoices, SEPA, banking, ledger, donations, communication, documents, settings, audit, imports / exports, API) and ship the built-in roles Admin, Treasurer, Division lead, Trainer, Member (portal), Tax adviser and Cash auditor, which cannot be edited, only copied; admins and external users such as the tax adviser need not be members and there is no seat limit.
+### Requirement: Modulberechtigungen und eingebaute Rollen
+Das System MUSS (SHALL) je Modul `none`, `read` oder `write` vergeben (Mitglieder, Personen, Gruppen, Beiträge, Rechnungen, SEPA, Bank, Buchhaltung, Spenden, Kommunikation, Dokumente, Einstellungen, Audit, Importe / Exporte, API) und die eingebauten Rollen Admin, Kassenwart:in, Abteilungsleitung, Trainer:in, Mitglied (Portal), Steuerberater:in und Kassenprüfer:in mitliefern, die nicht bearbeitet, nur kopiert werden können; Admins und externe Benutzer:innen wie die Steuerberater:in müssen keine Mitglieder sein, und es gibt keine Platzbegrenzung.
 
-#### Scenario: Built-in role immutable
-- **WHEN** an admin edits the built-in Treasurer role
-- **THEN** the system refuses and offers to copy it into a custom role
+#### Scenario: Eingebaute Rolle unveränderlich
+- **WHEN** ein Admin die eingebaute Rolle Kassenwart:in bearbeitet
+- **THEN** lehnt das System ab und bietet an, sie in eine eigene Rolle zu kopieren
 
-#### Scenario: External tax adviser
-- **WHEN** an admin creates a user for the tax adviser without a member record
-- **THEN** the user can sign in with the Tax adviser role
+#### Scenario: Externe Steuerberater:in
+- **WHEN** ein Admin eine Benutzer:in für die Steuerberater:in ohne Mitgliedsdatensatz anlegt
+- **THEN** kann sich die Benutzer:in mit der Rolle Steuerberater:in anmelden
 
-### Requirement: Division scope
-The system SHALL scope role grants to the whole organisation or to a set of groups with optional validity dates, and enforce scope in the application and in row-level security: multi-division members are visible to every lead of any of their divisions; household invoices show a lead only the lines of in-scope members plus the payer's name and address; non-member payers appear only as payer; address-book persons appear only through granted address groups; former members of scoped groups stay readable for 12 months.
+### Requirement: Abteilungsbereich
+Das System MUSS (SHALL) Rollenvergaben auf den ganzen Verein oder eine Menge von Gruppen mit optionalen Gültigkeitsdaten beschränken und den Bereich in der Anwendung und per Row-Level-Security durchsetzen: Mitglieder mehrerer Abteilungen sieht jede Leitung jeder ihrer Abteilungen; Haushaltsrechnungen zeigen einer Leitung nur Positionen von Mitgliedern im Bereich plus Name und Adresse der zahlenden Person; Nichtmitglieder erscheinen nur als zahlende Person; Adressbuch-Personen nur über freigegebene Adressgruppen; ehemalige Mitglieder bereichsgebundener Gruppen bleiben 12 Monate lesbar.
 
-#### Scenario: Out-of-scope member
-- **WHEN** the lead of "Tennis" requests a member who is only in "Fußball"
-- **THEN** the API answers as if the record did not exist in their scope
+#### Scenario: Mitglied außerhalb des Bereichs
+- **WHEN** die Leitung von "Tennis" ein Mitglied abruft, das nur in "Fußball" ist
+- **THEN** antwortet die API so, als gäbe es den Datensatz in ihrem Bereich nicht
 
-#### Scenario: Household invoice partly in scope
-- **WHEN** a division lead opens a household invoice with lines for one in-scope and one out-of-scope member
-- **THEN** only the in-scope line and the payer's name and address are shown, not the total
+#### Scenario: Haushaltsrechnung teilweise im Bereich
+- **WHEN** eine Abteilungsleitung eine Haushaltsrechnung mit Positionen für ein Mitglied innerhalb und eines außerhalb des Bereichs öffnet
+- **THEN** werden nur die Position im Bereich sowie Name und Adresse der zahlenden Person gezeigt, nicht die Summe
 
-### Requirement: Field-level restrictions
-The system SHALL restrict fields (IBAN, date of birth, sensitive custom fields, internal notes) per role, and restricted fields SHALL be omitted from the UI, API responses, exports, mail placeholders, PDFs, search results and audit diffs; the tax-adviser role SHALL see persons only with name, address and debtor / creditor number.
+### Requirement: Einschränkungen auf Feldebene
+Das System MUSS (SHALL) Felder (IBAN, Geburtsdatum, sensible benutzerdefinierte Felder, interne Notizen) je Rolle einschränken, und eingeschränkte Felder MÜSSEN in UI, API-Antworten, Exporten, E-Mail-Platzhaltern, PDFs, Suchergebnissen und Audit-Diffs fehlen; die Rolle Steuerberater:in MUSS Personen nur mit Name, Adresse und Debitoren- / Kreditorennummer sehen.
 
-#### Scenario: Trainer sees no IBAN
-- **WHEN** a trainer opens a member profile or exports the member list
-- **THEN** the IBAN appears in neither
+#### Scenario: Trainer:in sieht keine IBAN
+- **WHEN** eine Trainer:in ein Mitgliedsprofil öffnet oder die Mitgliederliste exportiert
+- **THEN** erscheint die IBAN in keinem von beiden
 
-#### Scenario: Tax adviser projection
-- **WHEN** a tax adviser opens a person
-- **THEN** only name, address and debtor / creditor number are returned
+#### Scenario: Sicht der Steuerberater:in
+- **WHEN** eine Steuerberater:in eine Person öffnet
+- **THEN** werden nur Name, Adresse und Debitoren- / Kreditorennummer zurückgegeben
 
-### Requirement: Check permissions view
-The system SHALL offer a "check permissions" view that shows, for a chosen user, the effective rights per module, the scope and the restricted fields, computed by the same policy functions that enforce access.
+### Requirement: Ansicht zum Prüfen von Berechtigungen
+Das System MUSS (SHALL) eine Ansicht „Rechte prüfen“ anbieten, die für eine gewählte Benutzer:in die effektiven Rechte je Modul, den Bereich und die eingeschränkten Felder zeigt, berechnet von denselben Policy-Funktionen, die den Zugriff durchsetzen.
 
-#### Scenario: Effective rights
-- **WHEN** an admin checks a user who holds Trainer for "U17"
-- **THEN** the view lists read on members scoped to "U17" and the restricted fields IBAN and date of birth as configured
+#### Scenario: Effektive Rechte
+- **WHEN** ein Admin eine Benutzer:in prüft, die Trainer:in für "U17" ist
+- **THEN** listet die Ansicht Lesezugriff auf Mitglieder im Bereich "U17" und die eingeschränkten Felder IBAN und Geburtsdatum wie konfiguriert
 
-### Requirement: Machine-readable authorisation denials
-The system SHALL answer every authorisation denial on the API with an RFC 9457 problem document that names the missing permission.
+### Requirement: Maschinenlesbare Autorisierungsablehnungen
+Das System MUSS (SHALL) jede Autorisierungsablehnung an der API mit einem Problem-Dokument nach RFC 9457 beantworten, das die fehlende Berechtigung nennt.
 
-#### Scenario: Denied write
-- **WHEN** a read-only user sends a write request
-- **THEN** the response is 403 with a problem document naming the missing permission
+#### Scenario: Abgelehnter Schreibzugriff
+- **WHEN** eine Benutzer:in mit reinem Lesezugriff eine schreibende Anfrage sendet
+- **THEN** lautet die Antwort 403 mit einem Problem-Dokument, das die fehlende Berechtigung nennt
 
-### Requirement: Jobs act with current grants
-The system SHALL run user-started jobs as their actor, reload that actor's grants at the start of every chunk and stop the job when the user is deactivated or the grant revoked; system jobs SHALL run as a `system` actor with a fixed permission set shown in the audit log.
+### Requirement: Jobs handeln mit aktuellen Rechten
+Das System MUSS (SHALL) von Benutzer:innen gestartete Jobs als deren Akteur ausführen, die Rechte dieses Akteurs zu Beginn jedes Teilschritts neu laden und den Job stoppen, wenn die Benutzer:in deaktiviert oder die Rechtevergabe entzogen wird; Systemjobs MÜSSEN als Akteur `system` mit einem festen, im Audit-Protokoll ausgewiesenen Berechtigungssatz laufen.
 
-#### Scenario: Grant revoked mid-job
-- **WHEN** a user's role grant is revoked while their bulk job is running
-- **THEN** the job stops at the next chunk and reports why
+#### Scenario: Rechtevergabe während des Jobs entzogen
+- **WHEN** einer Benutzer:in die Rollenvergabe entzogen wird, während ihr Massenjob läuft
+- **THEN** stoppt der Job beim nächsten Teilschritt und meldet den Grund
 
-### Requirement: Audit events
-The system SHALL record in the audit log every create, update and delete-equivalent with field-level before / after values (masked for users without the field right), status transitions, logins and failed logins, exports, bulk actions, permission changes, e-mails sent and lock-date changes, each with actor (user, API token or system), time and entity.
+### Requirement: Audit-Ereignisse
+Das System MUSS (SHALL) im Audit-Protokoll jedes Anlegen, Ändern und löschungsgleiche Ereignis mit Vorher- / Nachher-Werten auf Feldebene (maskiert für Benutzer:innen ohne Feldrecht), Statusübergänge, Anmeldungen und fehlgeschlagene Anmeldungen, Exporte, Massenaktionen, Berechtigungsänderungen, versendete E-Mails und Änderungen der Periodensperre erfassen, jeweils mit Akteur (Benutzer:in, API-Token oder System), Zeit und Entität.
 
-#### Scenario: Masked diff
-- **WHEN** a user without the IBAN right reads the audit entry of an IBAN change
-- **THEN** the before and after values are masked
+#### Scenario: Maskierter Diff
+- **WHEN** eine Benutzer:in ohne IBAN-Recht den Audit-Eintrag einer IBAN-Änderung liest
+- **THEN** sind Vorher- und Nachher-Wert maskiert
 
-#### Scenario: Token writes attributed
-- **WHEN** an API token updates a member
-- **THEN** the audit event names the token
+#### Scenario: Token-Schreibzugriffe zugeordnet
+- **WHEN** ein API-Token ein Mitglied ändert
+- **THEN** nennt das Audit-Ereignis den Token
 
-### Requirement: Append-only audit log with retention
-The system SHALL keep audit rows append-only for every role including admins, and purge them by a job according to retention per event class (defaults: login events 12 months, data changes 6 years, finance-related 10 years).
+### Requirement: Nur fortschreibbares Audit-Protokoll mit Aufbewahrungsfrist
+Das System MUSS (SHALL) Audit-Zeilen für jede Rolle einschließlich Admins nur fortschreibbar halten und sie per Job nach Aufbewahrungsfrist je Ereignisklasse löschen (Standard: Anmeldeereignisse 12 Monate, Datenänderungen 6 Jahre, finanzbezogene Ereignisse 10 Jahre).
 
-#### Scenario: Admin cannot edit audit rows
-- **WHEN** any user or the application role tries to update or delete an audit row
-- **THEN** the database refuses
+#### Scenario: Admin kann Audit-Zeilen nicht bearbeiten
+- **WHEN** eine beliebige Benutzer:in oder die Anwendungsrolle versucht, eine Audit-Zeile zu ändern oder zu löschen
+- **THEN** lehnt die Datenbank ab
 
-#### Scenario: Retention purge
-- **WHEN** the purge job runs
-- **THEN** login events older than 12 months are removed and finance-related events younger than 10 years stay
+#### Scenario: Löschung nach Aufbewahrungsfrist
+- **WHEN** der Löschjob läuft
+- **THEN** werden Anmeldeereignisse älter als 12 Monate entfernt, und finanzbezogene Ereignisse jünger als 10 Jahre bleiben erhalten
 
-### Requirement: Audit log search and export
-The system SHALL let authorised users filter the audit log by module, user, entity and date, search entity labels in full text, view entries per record as a timeline, and export results as CSV, XLSX or PDF.
+### Requirement: Suche und Export im Audit-Protokoll
+Das System MUSS (SHALL) berechtigten Benutzer:innen erlauben, das Audit-Protokoll nach Modul, Benutzer:in, Entität und Datum zu filtern, Entitätsbezeichnungen im Volltext zu durchsuchen, Einträge je Datensatz als Zeitleiste anzusehen und Ergebnisse als CSV, XLSX oder PDF zu exportieren.
 
-#### Scenario: Filter by entity
-- **WHEN** an admin filters the audit log by one member and a date range
-- **THEN** only events about that member in that range are shown and can be exported
+#### Scenario: Nach Entität filtern
+- **WHEN** ein Admin das Audit-Protokoll nach einem Mitglied und einem Datumsbereich filtert
+- **THEN** werden nur Ereignisse zu diesem Mitglied in diesem Bereich gezeigt und können exportiert werden
 
-### Requirement: Invitations by single-use link
-The system SHALL create new users without a password and return a single-use invitation token valid for 7 days, stored only as a hash; accepting it sets the password and signs the user in; a used or expired token SHALL be rejected; an admin can issue a new link, which invalidates the old one.
+### Requirement: Einladungen per Einmal-Link
+Das System MUSS (SHALL) neue Benutzer:innen ohne Passwort anlegen und ein 7 Tage gültiges Einmal-Einladungstoken zurückgeben, das nur als Hash gespeichert wird; das Annehmen setzt das Passwort und meldet die Benutzer:in an; ein benutztes oder abgelaufenes Token MUSS abgelehnt werden; ein Admin kann einen neuen Link ausstellen, der den alten ungültig macht.
 
-#### Scenario: Link used twice
-- **WHEN** an invitation link is used a second time
-- **THEN** the system rejects it and the password stays unchanged
+#### Scenario: Link zweimal benutzt
+- **WHEN** ein Einladungslink ein zweites Mal benutzt wird
+- **THEN** lehnt das System ihn ab, und das Passwort bleibt unverändert
 
-### Requirement: At least one admin remains
-The system SHALL refuse any change that would leave the organisation without an active user holding the unscoped built-in Admin role, and SHALL refuse users disabling their own account.
+### Requirement: Mindestens ein Admin bleibt
+Das System MUSS (SHALL) jede Änderung ablehnen, die den Verein ohne aktive Benutzer:in mit der unbeschränkten eingebauten Rolle Admin zurücklassen würde, und MUSS ablehnen, dass Benutzer:innen ihr eigenes Konto deaktivieren.
 
-#### Scenario: Last admin demoted
-- **WHEN** the only admin changes their own role to Treasurer
-- **THEN** the request is refused with a problem document and nothing changes
+#### Scenario: Letzter Admin herabgestuft
+- **WHEN** der einzige Admin die eigene Rolle auf Kassenwart:in ändert
+- **THEN** wird die Anfrage mit einem Problem-Dokument abgelehnt, und nichts ändert sich
 
-### Requirement: Age-based group change
-The system SHALL move members of a group with an age rule to the target group when they reach the age (on the birthday or on 1 January), and show the upcoming moves before they happen.
+### Requirement: Altersabhängiger Gruppenwechsel
+Das System MUSS (SHALL) Mitglieder einer Gruppe mit Altersregel bei Erreichen des Alters (am Geburtstag oder am 1. Januar) in die Zielgruppe verschieben und anstehende Wechsel vorab anzeigen.
 
-#### Scenario: 18th birthday
-- **WHEN** a member of "Jugend" (rule: 18, birthday, to "Erwachsene") turned 18 yesterday
-- **THEN** the next run ends the Jugend membership yesterday, starts Erwachsene today, and logs the move
+#### Scenario: 18. Geburtstag
+- **WHEN** ein Mitglied von "Jugend" (Regel: 18, Geburtstag, nach "Erwachsene") gestern 18 geworden ist
+- **THEN** beendet der nächste Lauf die Zugehörigkeit zu Jugend zum gestrigen Tag, beginnt Erwachsene heute und protokolliert den Wechsel
 

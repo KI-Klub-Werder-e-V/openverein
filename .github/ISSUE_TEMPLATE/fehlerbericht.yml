@@ -1,0 +1,70 @@
+name: Fehlerbericht
+description: Etwas funktioniert nicht wie erwartet.
+title: "[Fehler]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke, dass Du einen Fehler meldest! Sicherheitslücken bitte **nicht** hier, sondern vertraulich wie in [SECURITY.md](https://github.com/KI-Klub-Werder-e-V/openverein/blob/main/SECURITY.md) beschrieben.
+        Bitte poste keine echten Mitgliederdaten, Bankverbindungen oder Zugangsdaten.
+  - type: textarea
+    id: beschreibung
+    attributes:
+      label: Was ist passiert?
+      description: Beschreib den Fehler kurz und genau.
+    validations:
+      required: true
+  - type: textarea
+    id: schritte
+    attributes:
+      label: Schritte zum Nachstellen
+      placeholder: |
+        1. Öffne „Mitglieder“
+        2. Klick auf …
+        3. Fehler erscheint
+    validations:
+      required: true
+  - type: textarea
+    id: erwartet
+    attributes:
+      label: Was hast Du erwartet?
+    validations:
+      required: true
+  - type: dropdown
+    id: bereich
+    attributes:
+      label: Bereich
+      options:
+        - Mitglieder
+        - Geld (Beiträge, Rechnungen, SEPA)
+        - Bücher (EÜR, Belege, DATEV)
+        - Vereinsleben (Termine, Mail, Dokumente)
+        - Mitgliederportal
+        - Plattform (Rollen, API, Export, ovctl)
+        - Claude Code / MCP
+        - Sonstiges
+    validations:
+      required: true
+  - type: dropdown
+    id: umgebung
+    attributes:
+      label: Wo tritt der Fehler auf?
+      options:
+        - Öffentliche Demo
+        - Lokale Entwicklung (npm run dev)
+        - Eigener Server (ovctl / Docker)
+        - Mobile App
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version oder Commit
+      placeholder: z. B. 0.1.0 oder 82f6f05
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs, Fehlermeldungen oder Screenshots
+      description: Bitte vorher personenbezogene Daten entfernen.
+      render: shell

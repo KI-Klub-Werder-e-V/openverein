@@ -1,94 +1,94 @@
 # documents Specification
 
 ## Purpose
-The documents capability covers the content-addressed file store that every module uses for uploads and generated documents (MVP, from the technical notes of B M07, M12, M14, M17, M22 and M36), and the file manager with folder permissions, versioning and portal sharing (B P24, post-MVP). Items that B rates "should" or "could" are marked as such in the requirement name.
+Die Capability documents umfasst den inhaltsadressierten Dateispeicher, den jedes Modul für Uploads und erzeugte Dokumente nutzt (MVP, aus den technischen Hinweisen von B M07, M12, M14, M17, M22 und M36), sowie die Dateiverwaltung mit Ordnerberechtigungen, Versionierung und Freigabe im Portal (B P24, Post-MVP). Punkte, die B als „sollte“ oder „könnte“ bewertet, sind im Namen der Anforderung entsprechend gekennzeichnet.
 ## Requirements
-### Requirement: Content-addressed file store
-The system SHALL store every file by its SHA-256 with size, MIME type, original name, owner, retention class and legal-hold flag, store identical bytes only once, and support a local volume by default with an optional S3-compatible backend.
+### Requirement: Inhaltsadressierter Dateispeicher
+Das System MUSS (SHALL) jede Datei unter ihrem SHA-256 mit Größe, MIME-Typ, Originalname, Eigentümer:in, Aufbewahrungsklasse und Legal-Hold-Kennzeichen speichern, identische Bytes nur einmal ablegen und standardmäßig ein lokales Volume sowie optional ein S3-kompatibles Backend unterstützen.
 
-#### Scenario: Deduplicated bytes
-- **WHEN** the same PDF is uploaded as a receipt twice
-- **THEN** the bytes are stored once and both file records point to the same hash
+#### Scenario: Deduplizierte Bytes
+- **WHEN** dasselbe PDF zweimal als Beleg hochgeladen wird
+- **THEN** werden die Bytes einmal gespeichert und beide Dateieinträge verweisen auf denselben Hash
 
-### Requirement: Immutable issued documents
-The system SHALL store issued documents (invoices, cancellation documents, donation receipts, SEPA files, e-invoices) once with their SHA-256 and SHALL never re-render or overwrite them; every download SHALL return the stored bytes.
+### Requirement: Unveränderliche ausgestellte Dokumente
+Das System MUSS (SHALL) ausgestellte Dokumente (Rechnungen, Stornodokumente, Spendenbescheinigungen, SEPA-Dateien, E-Rechnungen) einmalig mit ihrem SHA-256 speichern und DARF sie NIEMALS neu rendern oder überschreiben; jeder Download MUSS die gespeicherten Bytes liefern.
 
-#### Scenario: Integrity check
-- **WHEN** a stored issued document is read back
-- **THEN** its SHA-256 equals the hash recorded at issue, otherwise the read fails with an integrity error
+#### Scenario: Integritätsprüfung
+- **WHEN** ein gespeichertes ausgestelltes Dokument zurückgelesen wird
+- **THEN** entspricht sein SHA-256 dem bei der Ausstellung erfassten Hash, andernfalls schlägt das Lesen mit einem Integritätsfehler fehl
 
-### Requirement: Retention classes and legal hold on files
-The system SHALL give each file a retention class (for example `voucher` for 8 years, `temporary` for exports, `raw_banking`), delete temporary export files after 7 days, and never delete a file under legal hold or within its retention period.
+### Requirement: Aufbewahrungsklassen und Legal Hold für Dateien
+Das System MUSS (SHALL) jeder Datei eine Aufbewahrungsklasse zuweisen (zum Beispiel `voucher` für 8 Jahre, `temporary` für Exporte, `raw_banking`), temporäre Exportdateien nach 7 Tagen löschen und DARF eine Datei unter Legal Hold oder innerhalb ihrer Aufbewahrungsfrist NIEMALS löschen.
 
-#### Scenario: Temporary export expires
-- **WHEN** an export file is 8 days old
-- **THEN** it has been deleted and its download link answers "expired"
+#### Scenario: Temporärer Export läuft ab
+- **WHEN** eine Exportdatei 8 Tage alt ist
+- **THEN** ist sie gelöscht und ihr Download-Link antwortet mit „abgelaufen“
 
-#### Scenario: Voucher kept
-- **WHEN** deletion of a receipt file within its 8-year retention is requested
-- **THEN** the system refuses
+#### Scenario: Beleg bleibt erhalten
+- **WHEN** die Löschung einer Belegdatei innerhalb ihrer 8-jährigen Aufbewahrungsfrist angefordert wird
+- **THEN** lehnt das System ab
 
-### Requirement: Encrypted raw banking files
-The system SHALL encrypt files of class `raw_banking` (stored pain.008, pain.001 and CAMT files) and importer payloads at rest.
+### Requirement: Verschlüsselte Bank-Rohdateien
+Das System MUSS (SHALL) Dateien der Klasse `raw_banking` (gespeicherte pain.008-, pain.001- und CAMT-Dateien) sowie Importer-Payloads im Ruhezustand verschlüsseln.
 
-#### Scenario: Encrypted at rest
-- **WHEN** a stored CAMT file is read directly from the volume
-- **THEN** its content is ciphertext
+#### Scenario: Im Ruhezustand verschlüsselt
+- **WHEN** eine gespeicherte CAMT-Datei direkt vom Volume gelesen wird
+- **THEN** ist ihr Inhalt Chiffretext
 
-### Requirement: Delete after commit
-The system SHALL remove file bytes from storage only after the database transaction that dropped the last reference has committed.
+### Requirement: Löschen nach Commit
+Das System MUSS (SHALL) Datei-Bytes erst dann aus dem Speicher entfernen, wenn die Datenbanktransaktion, die den letzten Verweis entfernt hat, committet ist.
 
-#### Scenario: Rolled-back erasure
-- **WHEN** an anonymisation transaction fails and rolls back
-- **THEN** all files it referenced are still readable
+#### Scenario: Zurückgerollte Löschung
+- **WHEN** eine Anonymisierungstransaktion fehlschlägt und zurückgerollt wird
+- **THEN** sind alle Dateien, auf die sie verwiesen hat, weiterhin lesbar
 
-### Requirement: Folders with permissions
-The system SHALL offer folders for shared documents (for example statutes, minutes, forms) with read or write access granted per role or group, inherited by subfolders unless overridden, enforced through the same policy checks as the rest of the application; this is post-MVP (B P24).
+### Requirement: Ordner mit Berechtigungen
+Das System MUSS (SHALL) Ordner für gemeinsame Dokumente (zum Beispiel Satzung, Protokolle, Formulare) anbieten, mit Lese- oder Schreibzugriff je Rolle oder Gruppe, der an Unterordner vererbt wird, sofern nicht überschrieben, und über dieselben Policy-Prüfungen durchgesetzt wird wie im Rest der Anwendung; dies ist Post-MVP (B P24).
 
-#### Scenario: Folder access denied
-- **WHEN** a member without access to folder "Vorstand" lists files
-- **THEN** that folder and its files are not shown
+#### Scenario: Ordnerzugriff verweigert
+- **WHEN** ein Mitglied ohne Zugriff auf den Ordner "Vorstand" Dateien auflistet
+- **THEN** werden dieser Ordner und seine Dateien nicht angezeigt
 
-#### Scenario: Inherited access
-- **WHEN** group "Trainer" has read on "Formulare"
-- **THEN** its members can read files in "Formulare/Anträge" unless that subfolder overrides it
+#### Scenario: Vererbter Zugriff
+- **WHEN** die Gruppe "Trainer" Lesezugriff auf "Formulare" hat
+- **THEN** können ihre Mitglieder Dateien in "Formulare/Anträge" lesen, sofern dieser Unterordner das nicht überschreibt
 
-### Requirement: File versioning
-The system SHALL keep earlier versions when a file in a folder is replaced, and let authorised users list and download them; this is post-MVP (B P24).
+### Requirement: Dateiversionierung
+Das System MUSS (SHALL) frühere Versionen aufbewahren, wenn eine Datei in einem Ordner ersetzt wird, und berechtigte Benutzer:innen diese auflisten und herunterladen lassen; dies ist Post-MVP (B P24).
 
-#### Scenario: Previous version
-- **WHEN** the statutes PDF is replaced by a new version
-- **THEN** the previous version stays downloadable from the version list
+#### Scenario: Vorherige Version
+- **WHEN** das Satzungs-PDF durch eine neue Version ersetzt wird
+- **THEN** bleibt die vorherige Version über die Versionsliste herunterladbar
 
-### Requirement: Sharing to the portal
-The system SHALL share folders or files to members in the portal by group, and shared files SHALL appear under "my documents"; this is post-MVP (B P24).
+### Requirement: Freigabe im Portal
+Das System MUSS (SHALL) Ordner oder Dateien im Portal gruppenweise für Mitglieder freigeben, und freigegebene Dateien MÜSSEN unter „Meine Dokumente“ erscheinen; dies ist Post-MVP (B P24).
 
-#### Scenario: Shared to members
-- **WHEN** the board shares the minutes folder with all active members
-- **THEN** every active member sees the files under "my documents" in the portal
+#### Scenario: Für Mitglieder freigegeben
+- **WHEN** der Vorstand den Protokollordner für alle aktiven Mitglieder freigibt
+- **THEN** sieht jedes aktive Mitglied die Dateien im Portal unter „Meine Dokumente“
 
-### Requirement: Files on a member record
-The system SHALL keep files attached to a member (for example a signed application) under the member's permissions, so only users who may read that member can list or download them.
+### Requirement: Dateien an einem Mitgliedsdatensatz
+Das System MUSS (SHALL) einem Mitglied zugeordnete Dateien (zum Beispiel einen unterschriebenen Antrag) unter den Berechtigungen des Mitglieds führen, sodass nur Benutzer:innen, die dieses Mitglied lesen dürfen, sie auflisten oder herunterladen können.
 
-#### Scenario: Trainer outside the group
-- **WHEN** a trainer scoped to "Tennis" lists files of a member who is not in "Tennis"
-- **THEN** the request fails as not found
+#### Scenario: Trainer:in außerhalb der Gruppe
+- **WHEN** ein:e auf "Tennis" beschränkte:r Trainer:in Dateien eines Mitglieds auflistet, das nicht in "Tennis" ist
+- **THEN** schlägt die Anfrage als nicht gefunden fehl
 
-### Requirement: Raw byte upload
-The system SHALL accept uploads as `application/octet-stream` of at most 20 MB on the file routes only, with place and retention class as query parameters and the file name in the `X-File-Name` header (percent-encoded UTF-8), so names never appear in request URLs.
+### Requirement: Upload als Roh-Bytes
+Das System MUSS (SHALL) Uploads als `application/octet-stream` von höchstens 20 MB nur auf den Datei-Routen annehmen, mit Ablageort und Aufbewahrungsklasse als Query-Parameter und dem Dateinamen im Header `X-File-Name` (prozentkodiertes UTF-8), sodass Namen nie in Anfrage-URLs erscheinen.
 
-#### Scenario: Upload elsewhere refused
-- **WHEN** a client posts `application/octet-stream` to the members route
-- **THEN** the request is refused with 415
+#### Scenario: Upload an anderer Stelle abgelehnt
+- **WHEN** ein Client `application/octet-stream` an die Mitglieder-Route sendet
+- **THEN** wird die Anfrage mit 415 abgelehnt
 
-#### Scenario: Name in a header
-- **WHEN** a file "Attest Müller.pdf" is uploaded with its name in `X-File-Name`
-- **THEN** it is stored under that name and the URL carries no name
+#### Scenario: Name im Header
+- **WHEN** eine Datei "Attest Müller.pdf" mit ihrem Namen in `X-File-Name` hochgeladen wird
+- **THEN** wird sie unter diesem Namen gespeichert und die URL enthält keinen Namen
 
-### Requirement: Inventory and lending
-The system SHALL track the club's items and their loans to members, never lending more than available and marking loans past their due date.
+### Requirement: Inventar und Verleih
+Das System MUSS (SHALL) die Gegenstände des Vereins und deren Ausleihe an Mitglieder erfassen, dabei nie mehr verleihen als verfügbar und Ausleihen nach ihrem Fälligkeitsdatum kennzeichnen.
 
-#### Scenario: Last ball
-- **WHEN** 2 of 3 balls are lent and someone asks for 2 more
-- **THEN** the loan is refused with "Nur noch 1 Stück verfügbar"
+#### Scenario: Letzter Ball
+- **WHEN** 2 von 3 Bällen verliehen sind und jemand 2 weitere anfragt
+- **THEN** wird die Ausleihe mit "Nur noch 1 Stück verfügbar" abgelehnt
 

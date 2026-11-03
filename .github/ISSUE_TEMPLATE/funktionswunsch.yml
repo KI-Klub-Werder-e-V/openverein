@@ -1,0 +1,61 @@
+name: Funktionswunsch
+description: Schlag eine neue Funktion oder Verbesserung vor.
+title: "[Wunsch]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für Deine Idee! Am meisten hilft uns, wenn Du das Problem aus Sicht des Vereins beschreibst.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem hat Dein Verein?
+      description: Was ist heute umständlich oder nicht möglich?
+      placeholder: Unsere Kasse muss jeden Monat …
+    validations:
+      required: true
+  - type: textarea
+    id: loesung
+    attributes:
+      label: Wie stellst Du Dir die Lösung vor?
+    validations:
+      required: true
+  - type: dropdown
+    id: bereich
+    attributes:
+      label: Bereich
+      options:
+        - Mitglieder
+        - Geld (Beiträge, Rechnungen, SEPA)
+        - Bücher (EÜR, Belege, DATEV)
+        - Vereinsleben (Termine, Mail, Dokumente)
+        - Mitgliederportal
+        - Plattform (Rollen, API, Export, ovctl)
+        - Claude Code / MCP
+        - Sonstiges
+    validations:
+      required: true
+  - type: dropdown
+    id: rolle
+    attributes:
+      label: Wer braucht das?
+      multiple: true
+      options:
+        - Vorstand
+        - Kasse
+        - Verwaltung / Geschäftsstelle
+        - Übungsleitung
+        - Mitglieder
+        - Betrieb / Admin
+  - type: textarea
+    id: alternativen
+    attributes:
+      label: Wie löst Ihr das bisher?
+      description: Workarounds, andere Programme, rechtliche Vorgaben (z. B. GoBD, AO, DSGVO).
+  - type: checkboxes
+    id: mithilfe
+    attributes:
+      label: Mithilfe
+      options:
+        - label: Ich würde beim Umsetzen helfen (Spezifikation, Code oder Test).

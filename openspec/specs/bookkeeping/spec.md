@@ -1,271 +1,271 @@
 # bookkeeping Specification
 
 ## Purpose
-The bookkeeping capability covers the cash-basis EÜR on a balanced append-only journal with SKR accounts, tax spheres, cost centres and tax rates, bank and cash accounts with cash book, receipts, the GoBD period lock with reversal corrections, EÜR and ledger reports with the tax-audit export, DATEV EXTF export, outgoing e-invoices, and donations with BMF donation receipts (B M20, M21, M22, M23, M24, M25, M26, M43). All amounts are integer cents. Items that B rates "should" or "could" are marked as such in the requirement name; everything else is MVP behaviour.
+Die Capability bookkeeping umfasst die Einnahmen-Überschuss-Rechnung (EÜR) auf einem ausgeglichenen, nur fortschreibbaren Buchungsjournal mit SKR-Konten, steuerlichen Sphären, Kostenstellen und Steuersätzen, Bank- und Kassenkonten mit Kassenbuch, Belege, die GoBD-Periodensperre mit Korrekturen per Storno, EÜR- und Kontenberichte mit dem Export für die Betriebsprüfung, den DATEV-EXTF-Export, ausgehende E-Rechnungen sowie Spenden mit Zuwendungsbestätigungen nach BMF-Muster (B M20, M21, M22, M23, M24, M25, M26, M43). Alle Beträge sind ganzzahlige Cent. Punkte, die B mit „sollte“ oder „könnte“ bewertet, sind im Namen der Anforderung entsprechend gekennzeichnet; alles andere ist MVP-Verhalten.
 ## Requirements
-### Requirement: Chart of accounts
-The system SHALL ship SKR 42 and SKR 49 as versioned templates, allow custom accounts, and allow used accounts only to be retired, not deleted, so that old reports stay reproducible.
+### Requirement: Kontenplan
+Das System MUSS (SHALL) SKR 42 und SKR 49 als versionierte Vorlagen mitliefern, eigene Konten erlauben und bebuchte Konten nur stilllegen, nicht löschen lassen, damit alte Berichte reproduzierbar bleiben.
 
-#### Scenario: Used account
-- **WHEN** an admin deletes an account with posted lines
-- **THEN** the system refuses and offers to retire it
+#### Scenario: Bebuchtes Konto
+- **WHEN** ein Admin ein Konto mit gebuchten Positionen löscht
+- **THEN** lehnt das System ab und bietet an, es stillzulegen
 
-### Requirement: Hide accounts from pickers (should)
-The system SHALL let accounts be hidden from pickers without retiring them.
+### Requirement: Konten in Auswahllisten ausblenden (sollte)
+Das System MUSS (SHALL) erlauben, Konten in Auswahllisten auszublenden, ohne sie stillzulegen.
 
-#### Scenario: Hidden account
-- **WHEN** an account is hidden
-- **THEN** it no longer appears in booking pickers but stays in reports
+#### Scenario: Ausgeblendetes Konto
+- **WHEN** ein Konto ausgeblendet wird
+- **THEN** erscheint es nicht mehr in den Auswahllisten beim Buchen, bleibt aber in Berichten
 
-### Requirement: Tax spheres
-The system SHALL book every line to one of the four spheres (ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb) or the SKR 42 collective code 9, warn when economic-sphere gross income reaches 80 % of EUR 50,000 in a year, and block code 9 for the year once it exceeds EUR 50,000.
+### Requirement: Steuerliche Sphären
+Das System MUSS (SHALL) jede Position auf eine der vier Sphären (ideeller Bereich, Vermögensverwaltung, Zweckbetrieb, wirtschaftlicher Geschäftsbetrieb) oder auf den SKR-42-Sammelcode 9 buchen, warnen, wenn die Bruttoeinnahmen des wirtschaftlichen Geschäftsbetriebs in einem Jahr 80 % von 50.000 EUR erreichen, und Code 9 für das Jahr sperren, sobald sie 50.000 EUR überschreiten.
 
-#### Scenario: Limit exceeded
-- **WHEN** economic-sphere gross income for 2027 reaches 5000001 cents
-- **THEN** new bookings to code 9 for 2027 are blocked
+#### Scenario: Grenze überschritten
+- **WHEN** die Bruttoeinnahmen des wirtschaftlichen Geschäftsbetriebs für 2027 5000001 Cent erreichen
+- **THEN** werden neue Buchungen auf Code 9 für 2027 gesperrt
 
-#### Scenario: Early warning
-- **WHEN** it reaches 4000000 cents
-- **THEN** a warning is shown
+#### Scenario: Frühwarnung
+- **WHEN** sie 4000000 Cent erreichen
+- **THEN** wird eine Warnung angezeigt
 
-### Requirement: Tax rates as records
-The system SHALL keep tax rates as records (rate, valid from / to, output-VAT account, input-VAT account), seeded with German rates including the historic 5 % and 16 %, allow club-defined rates, and have lines reference a rate from which DATEV and e-invoices read the accounts.
+### Requirement: Steuersätze als Datensätze
+Das System MUSS (SHALL) Steuersätze als Datensätze führen (Satz, gültig von / bis, Umsatzsteuerkonto, Vorsteuerkonto), vorbelegt mit den deutschen Sätzen einschließlich der historischen 5 % und 16 %, vereinseigene Sätze erlauben und Positionen auf einen Satz verweisen lassen, aus dem DATEV und E-Rechnungen die Konten lesen.
 
-#### Scenario: Historic rate
-- **WHEN** a receipt dated in the second half of 2020 is entered at 16 %
-- **THEN** the seeded 16 % rate valid on that date is used
+#### Scenario: Historischer Steuersatz
+- **WHEN** ein Beleg mit Datum in der zweiten Jahreshälfte 2020 mit 16 % erfasst wird
+- **THEN** wird der vorbelegte, an diesem Datum gültige 16-%-Satz verwendet
 
-### Requirement: Balanced append-only journal
-The system SHALL post only balanced journal entries (sum of debits equals sum of credits), each with date, entry number, text, source (bank transaction, invoice, receipt, manual, reversal, import), posting user and receipt files; posted entries and lines SHALL be immutable at database level, and issuing an invoice SHALL NOT post to the journal (cash basis), while a confirmed payment allocation SHALL.
+### Requirement: Ausgeglichenes, nur ergänzbares Buchungsjournal
+Das System MUSS (SHALL) nur ausgeglichene Buchungen buchen (Summe Soll gleich Summe Haben), jeweils mit Datum, Buchungsnummer, Text, Quelle (Kontobewegung, Rechnung, Beleg, manuell, Storno, Import), buchender Person und Belegdateien; gebuchte Buchungen und Positionen MÜSSEN auf Datenbankebene unveränderlich sein, und das Ausstellen einer Rechnung DARF NICHT ins Buchungsjournal buchen (Ist-Versteuerung), eine bestätigte Zahlungszuordnung hingegen schon.
 
-#### Scenario: Unbalanced entry
-- **WHEN** an entry with 10000 cents debit and 9000 cents credit is committed
-- **THEN** the transaction fails
+#### Scenario: Unausgeglichene Buchung
+- **WHEN** eine Buchung mit 10000 Cent Soll und 9000 Cent Haben festgeschrieben wird
+- **THEN** schlägt die Transaktion fehl
 
-#### Scenario: Update refused
-- **WHEN** any role tries to update or delete a posted line
-- **THEN** the database raises an error
+#### Scenario: Änderung abgelehnt
+- **WHEN** irgendeine Rolle versucht, eine gebuchte Position zu ändern oder zu löschen
+- **THEN** löst die Datenbank einen Fehler aus
 
-### Requirement: EÜR booking form with multi-rate lines
-The system SHALL let treasurers book "income / expense on account X, sphere Y, cost centre Z" and generate the double-entry lines, hiding debit and credit unless details are opened; one receipt or booking MAY carry lines at 0 %, 7 % and 19 %.
+### Requirement: EÜR-Buchungsmaske mit Positionen zu mehreren Steuersätzen
+Das System MUSS (SHALL) Kassenwart:innen „Einnahme / Ausgabe auf Konto X, Sphäre Y, Kostenstelle Z“ buchen lassen und daraus die doppelten Buchungspositionen erzeugen, wobei Soll und Haben verborgen bleiben, solange die Details nicht geöffnet werden; ein Beleg oder eine Buchung DARF Positionen mit 0 %, 7 % und 19 % enthalten.
 
-#### Scenario: Multi-rate receipt
-- **WHEN** a receipt has lines at 7 % and 19 %
-- **THEN** one entry is posted with separate tax lines for each rate
+#### Scenario: Beleg mit mehreren Steuersätzen
+- **WHEN** ein Beleg Positionen mit 7 % und 19 % hat
+- **THEN** wird eine Buchung mit getrennten Steuerpositionen für jeden Satz gebucht
 
-### Requirement: Bank and cash accounts with cash book
-The system SHALL keep bank, cash and payment-provider accounts with IBAN, BIC, holder, opening balance and date, linked ledger account and default sphere, show running and any-date closing balances, keep a cash book per cash account with chronological numbered entries, daily balance and a receipt per entry, reject any cash entry that would make the balance negative, book transfers between own accounts as a transit pair rather than income, and export the cash book as PDF.
+### Requirement: Bank- und Kassenkonten mit Kassenbuch
+Das System MUSS (SHALL) Bank-, Kassen- und Zahlungsanbieterkonten mit IBAN, BIC, Inhaber:in, Anfangssaldo und -datum, verknüpftem Sachkonto und Standardsphäre führen, laufende und stichtagsbezogene Salden zeigen, je Kasse ein Kassenbuch mit chronologisch nummerierten Buchungen, Tagessaldo und Beleg je Buchung führen, Kassenbuchungen ablehnen, die den Bestand negativ machen, Umbuchungen zwischen eigenen Konten als Geldtransit-Paar statt als Einnahme buchen und das Kassenbuch als PDF exportieren.
 
-#### Scenario: Negative cash refused
-- **WHEN** a cash expense of 5000 cents is entered while the cash box holds 3000 cents
-- **THEN** the entry is rejected with an explanation
+#### Scenario: Negativer Kassenbestand abgelehnt
+- **WHEN** eine Barausgabe von 5000 Cent erfasst wird, während die Kasse 3000 Cent enthält
+- **THEN** wird die Buchung mit einer Erklärung abgelehnt
 
-#### Scenario: Cash deposit
-- **WHEN** 20000 cents are moved from the cash box to the bank
-- **THEN** a transit pair is booked and the EÜR shows no income
+#### Scenario: Bareinzahlung
+- **WHEN** 20000 Cent von der Kasse auf die Bank übertragen werden
+- **THEN** wird ein Geldtransit-Paar gebucht und die EÜR zeigt keine Einnahme
 
-### Requirement: Receipts
-The system SHALL record supplier receipts with supplier, number, date, due date, lines (text, amount, tax rate, account, sphere, cost centre) and files uploaded by drag-and-drop or phone camera, with states `recorded` → `open` → `paid` → posted; ZUGFeRD and XRechnung files SHALL be stored unchanged with the PDF shown and lines entered by hand; the system SHALL warn on the same supplier and number or the same file hash.
+### Requirement: Belege
+Das System MUSS (SHALL) Lieferantenbelege mit Lieferant, Nummer, Datum, Fälligkeit, Positionen (Text, Betrag, Steuersatz, Konto, Sphäre, Kostenstelle) und per Drag-and-drop oder Handykamera hochgeladenen Dateien erfassen, mit den Zuständen `recorded` → `open` → `paid` → gebucht; ZUGFeRD- und XRechnung-Dateien MÜSSEN unverändert gespeichert werden, mit PDF-Anzeige und manuell erfassten Positionen; es MUSS bei gleichem Lieferanten und gleicher Nummer oder gleichem Dateihash warnen.
 
-#### Scenario: Duplicate receipt
-- **WHEN** a receipt file with a known SHA-256 is uploaded
-- **THEN** the system warns that it may be a duplicate
+#### Scenario: Doppelter Beleg
+- **WHEN** eine Belegdatei mit bekanntem SHA-256 hochgeladen wird
+- **THEN** warnt das System, dass es sich um eine Dublette handeln könnte
 
-### Requirement: Self-issued receipts (should)
-The system SHALL create an Eigenbeleg for expenses without a supplier document with reason, date, amount and signer, render it as PDF and store it like any receipt.
+### Requirement: Eigenbelege (sollte)
+Das System MUSS (SHALL) für Ausgaben ohne Lieferantenbeleg einen Eigenbeleg mit Grund, Datum, Betrag und unterzeichnender Person erstellen, ihn als PDF rendern und wie jeden Beleg speichern.
 
 #### Scenario: Eigenbeleg
-- **WHEN** a treasurer records a 1500-cent parking fee without a ticket
-- **THEN** a self-issued receipt PDF is stored with the booking
+- **WHEN** ein:e Kassenwart:in eine Parkgebühr von 1500 Cent ohne Ticket erfasst
+- **THEN** wird ein Eigenbeleg als PDF mit der Buchung gespeichert
 
-### Requirement: GoBD period lock and close
-The system SHALL refuse any posting, reversal or allocation dated on or before the organisation's lock date; moving the lock date backwards SHALL require the treasurer role with TOTP and a reason and be audit-logged; closing a fiscal period SHALL store a report snapshot (EÜR totals, account balances, hash); and the system SHALL generate a Verfahrensdokumentation draft from configuration.
+### Requirement: GoBD-Periodensperre und Abschluss
+Das System MUSS (SHALL) jede Buchung, jedes Storno und jede Zuordnung mit Datum am oder vor dem Sperrdatum der Organisation ablehnen; das Zurücksetzen des Sperrdatums MUSS die Rolle Kassenwart:in mit TOTP und einen Grund erfordern und im Audit-Protokoll erfasst werden; der Abschluss einer Periode MUSS einen Bericht-Snapshot speichern (EÜR-Summen, Kontensalden, Hash); und das System MUSS aus der Konfiguration einen Entwurf der Verfahrensdokumentation erzeugen.
 
-#### Scenario: Posting into locked period
-- **WHEN** the lock date is 31 December 2026 and a booking dated 15 December 2026 is posted
-- **THEN** it is refused
+#### Scenario: Buchung in gesperrte Periode
+- **WHEN** das Sperrdatum der 31. Dezember 2026 ist und eine Buchung mit Datum 15. Dezember 2026 gebucht wird
+- **THEN** wird sie abgelehnt
 
-#### Scenario: Unlock audited
-- **WHEN** a treasurer moves the lock date back with TOTP and reason
-- **THEN** the change is applied and audit-logged with the reason
+#### Scenario: Entsperren wird protokolliert
+- **WHEN** ein:e Kassenwart:in das Sperrdatum mit TOTP und Grund zurücksetzt
+- **THEN** wird die Änderung übernommen und mit dem Grund im Audit-Protokoll erfasst
 
-### Requirement: Reversal corrections
-The system SHALL correct posted entries only by a reversal entry (on the original date or today, by setting) plus a pre-filled new entry.
+### Requirement: Korrektur durch Storno
+Das System MUSS (SHALL) gebuchte Buchungen ausschließlich durch eine Stornobuchung (je nach Einstellung zum ursprünglichen Datum oder zu heute) plus eine vorausgefüllte neue Buchung korrigieren.
 
-#### Scenario: Correct entry
-- **WHEN** a user chooses "correct" on a posted entry
-- **THEN** a reversal entry is posted and a new pre-filled entry opens; the original stays unchanged
+#### Scenario: Buchung korrigieren
+- **WHEN** eine Benutzer:in bei einer gebuchten Buchung „korrigieren“ wählt
+- **THEN** wird eine Stornobuchung gebucht und eine neue vorausgefüllte Buchung öffnet sich; das Original bleibt unverändert
 
-### Requirement: EÜR and ledger reports
-The system SHALL produce the EÜR for any date range per sphere and in total with net, gross and tax columns and drill-down, ledger sheets per account, a trial balance and a cost-centre report, as PDF and XLSX (large reports as jobs), with a warning panel above every report (unposted transactions, transactions without receipt, code 9 above the limit, open allocations, bank balance differences, accounts without DATEV mapping); a report for a closed period SHALL match its snapshot or show the difference.
+### Requirement: EÜR- und Kontenberichte
+Das System MUSS (SHALL) die EÜR für beliebige Zeiträume je Sphäre und gesamt mit Netto-, Brutto- und Steuerspalten und Drill-down, Kontenblätter je Konto, eine Summen- und Saldenliste und einen Kostenstellenbericht als PDF und XLSX erzeugen (große Berichte als Jobs), mit einem Warnbereich über jedem Bericht (ungebuchte Kontobewegungen, Kontobewegungen ohne Beleg, Code 9 über der Grenze, offene Zuordnungen, Abweichungen beim Banksaldo, Konten ohne DATEV-Zuordnung); ein Bericht für eine abgeschlossene Periode MUSS seinem Snapshot entsprechen oder die Abweichung zeigen.
 
-#### Scenario: Warnings shown
-- **WHEN** the EÜR range contains three transactions without receipts
-- **THEN** the warning panel shows "3 transactions without receipt" with a link
+#### Scenario: Warnungen werden angezeigt
+- **WHEN** der EÜR-Zeitraum drei Kontobewegungen ohne Beleg enthält
+- **THEN** zeigt der Warnbereich „3 Kontobewegungen ohne Beleg“ mit einem Link
 
-#### Scenario: Snapshot difference
-- **WHEN** a closed-period report differs from its stored snapshot
-- **THEN** the report shows the difference
+#### Scenario: Abweichung vom Snapshot
+- **WHEN** ein Bericht einer abgeschlossenen Periode von seinem gespeicherten Snapshot abweicht
+- **THEN** zeigt der Bericht die Abweichung
 
-### Requirement: Tax-audit data access export
-The system SHALL export per fiscal year the GoBD Z3 data-access package in the Beschreibungsstandard (`index.xml` plus one CSV per table: journal, lines, accounts, receipts, invoices, debtors / creditors) and audit-log every access.
+### Requirement: Export für den Datenzugriff der Betriebsprüfung
+Das System MUSS (SHALL) je Geschäftsjahr das GoBD-Z3-Datenüberlassungspaket im Beschreibungsstandard exportieren (`index.xml` plus eine CSV pro Tabelle: Buchungsjournal, Positionen, Konten, Belege, Rechnungen, Debitoren / Kreditoren) und jeden Zugriff im Audit-Protokoll erfassen.
 
-#### Scenario: Z3 package
-- **WHEN** a tax adviser exports 2026
-- **THEN** a package with `index.xml` and the table CSVs is produced and the access is logged
+#### Scenario: Z3-Paket
+- **WHEN** eine Steuerberaterin oder ein Steuerberater 2026 exportiert
+- **THEN** wird ein Paket mit `index.xml` und den Tabellen-CSVs erzeugt und der Zugriff protokolliert
 
-### Requirement: Account summary report (should)
-The system SHALL show per bank and cash account for a range the opening balance, income, expenses, surplus and closing balance.
+### Requirement: Kontenübersicht (sollte)
+Das System MUSS (SHALL) je Bank- und Kassenkonto für einen Zeitraum Anfangssaldo, Einnahmen, Ausgaben, Überschuss und Endsaldo anzeigen.
 
-#### Scenario: Cash auditor sheet
-- **WHEN** a cash auditor runs the summary for 2026
-- **THEN** each account shows opening balance, income, expenses, surplus and closing balance that add up
+#### Scenario: Blatt für die Kassenprüfung
+- **WHEN** ein:e Kassenprüfer:in die Übersicht für 2026 aufruft
+- **THEN** zeigt jedes Konto Anfangssaldo, Einnahmen, Ausgaben, Überschuss und Endsaldo, die rechnerisch aufgehen
 
-### Requirement: DATEV EXTF export
-The system SHALL export booking batches (EXTF format version 700, category 21) and debtor / creditor master data (category 16) as a ZIP with receipt files referenced by document GUID and a `document.xml`, as delta (since the last export) or full export for a period, with header fields from settings (consultant number, client number, fiscal year start, account length, SKR) and sphere and cost centre mapped to KOST1 / KOST2; exported entries SHALL be marked with the export id, and the export SHALL refuse to run while accounts lack a DATEV mapping and list them.
+### Requirement: DATEV-EXTF-Export
+Das System MUSS (SHALL) Buchungsstapel (EXTF-Formatversion 700, Kategorie 21) und Debitoren- / Kreditoren-Stammdaten (Kategorie 16) als ZIP mit per Dokument-GUID referenzierten Belegdateien und einer `document.xml` exportieren, als Delta (seit dem letzten Export) oder Vollexport für einen Zeitraum, mit Kopfdaten aus den Einstellungen (Beraternummer, Mandantennummer, Beginn des Geschäftsjahrs, Sachkontenlänge, SKR) und Sphäre und Kostenstelle auf KOST1 / KOST2 abgebildet; exportierte Buchungen MÜSSEN mit der Export-ID markiert werden, und der Export MUSS die Ausführung verweigern, solange Konten keine DATEV-Zuordnung haben, und diese auflisten.
 
-#### Scenario: Missing mapping
-- **WHEN** an account used in the period has no DATEV mapping
-- **THEN** the export refuses and lists the account
+#### Scenario: Fehlende Zuordnung
+- **WHEN** ein im Zeitraum verwendetes Konto keine DATEV-Zuordnung hat
+- **THEN** verweigert der Export die Ausführung und listet das Konto auf
 
-#### Scenario: Delta export
-- **WHEN** a delta export runs after a previous export
-- **THEN** it contains only entries not yet exported
+#### Scenario: Delta-Export
+- **WHEN** ein Delta-Export nach einem vorherigen Export läuft
+- **THEN** enthält er nur noch nicht exportierte Buchungen
 
-### Requirement: DATEV export options (should)
-The system SHALL offer one collective debtor and one collective creditor number instead of per-person numbers, and after an export SHALL offer to move the lock date to the end of the exported period under the same TOTP rule.
+### Requirement: DATEV-Exportoptionen (sollte)
+Das System MUSS (SHALL) je eine Sammel-Debitoren- und Sammel-Kreditorennummer statt personenbezogener Nummern anbieten und nach einem Export anbieten, das Sperrdatum unter derselben TOTP-Regel auf das Ende des exportierten Zeitraums zu setzen.
 
-#### Scenario: Lock offer
-- **WHEN** a DATEV export for Q1 completes
-- **THEN** the treasurer is offered to set the lock date to 31 March
+#### Scenario: Sperrdatum wird angeboten
+- **WHEN** ein DATEV-Export für Q1 abgeschlossen ist
+- **THEN** wird der Kassenwart:in angeboten, das Sperrdatum auf den 31. März zu setzen
 
-### Requirement: Outgoing e-invoices
-The system SHALL issue invoices in the economic sphere (and taxable Zweckbetrieb) to business recipients as ZUGFeRD (EN 16931, PDF/A-3 with embedded CII XML) or XRechnung (CII or UBL), chosen per recipient; issuing SHALL be blocked with a clear message while mandatory EN 16931 fields (seller VAT ID or tax number, buyer reference / Leitweg-ID for public buyers, tax category per line) are missing; files SHALL pass the KoSIT validator in CI and be stored once with SHA-256; a Kleinunternehmer setting (§19 UStG) SHALL turn the obligation off and label invoices accordingly.
+### Requirement: Ausgehende E-Rechnungen
+Das System MUSS (SHALL) Rechnungen im wirtschaftlichen Geschäftsbetrieb (und im steuerpflichtigen Zweckbetrieb) an gewerbliche Empfänger:innen als ZUGFeRD (EN 16931, PDF/A-3 mit eingebettetem CII-XML) oder XRechnung (CII oder UBL) ausstellen, je Empfänger:in wählbar; das Ausstellen MUSS mit klarer Meldung gesperrt sein, solange EN-16931-Pflichtfelder (USt-IdNr. oder Steuernummer des Verkäufers, Käuferreferenz / Leitweg-ID bei öffentlichen Auftraggebern, Steuerkategorie je Position) fehlen; Dateien MÜSSEN in der CI den KoSIT-Validator bestehen und einmalig mit SHA-256 gespeichert werden; eine Kleinunternehmer-Einstellung (§19 UStG) MUSS die Pflicht abschalten und Rechnungen entsprechend kennzeichnen.
 
-#### Scenario: Missing Leitweg-ID
-- **WHEN** an XRechnung to a public buyer has no Leitweg-ID
-- **THEN** issuing is blocked naming the missing field
+#### Scenario: Fehlende Leitweg-ID
+- **WHEN** eine XRechnung an einen öffentlichen Auftraggeber keine Leitweg-ID hat
+- **THEN** wird das Ausstellen unter Nennung des fehlenden Felds gesperrt
 
-### Requirement: Donations
-The system SHALL record money donations from allocated bank transactions, cash entries or manual entry with donor, date, amount in cents, purpose, sphere and membership-fee flag, and check eligibility before issuing a receipt: the exemption notice date is not older than 5 years (Freistellungsbescheid) or 3 years (Feststellungsbescheid), the purpose is covered and the donor address is present.
+### Requirement: Spenden
+Das System MUSS (SHALL) Geldspenden aus zugeordneten Kontobewegungen, Kassenbuchungen oder manueller Erfassung mit spendender Person, Datum, Betrag in Cent, Zweck, Sphäre und Kennzeichen Mitgliedsbeitrag erfassen und vor dem Ausstellen einer Zuwendungsbestätigung die Berechtigung prüfen: Das Datum des Bescheids ist nicht älter als 5 Jahre (Freistellungsbescheid) bzw. 3 Jahre (Feststellungsbescheid), der Zweck ist abgedeckt und die Adresse der spendenden Person liegt vor.
 
-#### Scenario: Expired notice
-- **WHEN** the organisation's Freistellungsbescheid is dated six years ago
-- **THEN** issuing a donation receipt is blocked
+#### Scenario: Abgelaufener Freistellungsbescheid
+- **WHEN** der Freistellungsbescheid der Organisation sechs Jahre alt ist
+- **THEN** ist das Ausstellen einer Spendenbescheinigung gesperrt
 
-### Requirement: Donation receipts
-The system SHALL issue single receipts and annual collective receipts with annex list from versioned, non-editable BMF template packs (pack version stored on the receipt), number them gaplessly, render them once with stored bytes and hash, send them by preferred channel, and never edit them; a wrong receipt SHALL be cancelled with reason and date and reissued with a new number; a donation SHALL be on at most one non-cancelled receipt, imported receipts included; bulk collective receipts for a year SHALL be previewed first; receipts for donations up to EUR 300 SHALL carry the simplified-proof note; an optional signature image with the machine-generated statement SHALL be supported.
+### Requirement: Spendenbescheinigungen
+Das System MUSS (SHALL) Einzel- und Sammelbestätigungen mit Anlage aus versionierten, nicht bearbeitbaren BMF-Musterpaketen ausstellen (Paketversion an der Bestätigung gespeichert), lückenlos nummerieren, einmalig mit gespeicherten Bytes und Hash rendern, über den bevorzugten Kanal versenden und nie bearbeiten; eine fehlerhafte Bestätigung MUSS mit Grund und Datum storniert und mit neuer Nummer neu ausgestellt werden; eine Spende DARF auf höchstens einer nicht stornierten Bestätigung stehen, importierte eingeschlossen; Sammelbestätigungen eines Jahres MÜSSEN zuerst als Vorschau erscheinen; Bestätigungen bis 300 EUR MÜSSEN den Hinweis zum vereinfachten Nachweis tragen; ein optionales Unterschriftsbild mit dem Hinweis auf maschinelle Erstellung MUSS unterstützt werden.
 
-#### Scenario: Donation receipted twice
-- **WHEN** a collective receipt would include a donation already on a non-cancelled receipt
-- **THEN** that donation is excluded and listed as already receipted
+#### Scenario: Spende doppelt bescheinigt
+- **WHEN** eine Sammelbestätigung eine Spende enthalten würde, die bereits auf einer nicht stornierten Bestätigung steht
+- **THEN** wird diese Spende ausgeschlossen und als bereits bestätigt aufgeführt
 
-#### Scenario: Cancel and reissue
-- **WHEN** a receipt with a wrong address is cancelled
-- **THEN** it keeps its number and PDF with status cancelled, and the reissue gets a new number
+#### Scenario: Stornieren und neu ausstellen
+- **WHEN** eine Bestätigung mit falscher Adresse storniert wird
+- **THEN** behält sie ihre Nummer und ihr PDF mit dem Status storniert, und die Neuausstellung erhält eine neue Nummer
 
-### Requirement: Neutral default chart with DATEV mapping
-The system SHALL seed each club with a small neutral chart of accounts (money, transit, tax, income and expense accounts with a default sphere) and let every account carry the account number of the tax adviser's DATEV chart; the warning panel SHALL list used accounts without a DATEV number.
+### Requirement: Neutraler Standard-Kontenplan mit DATEV-Zuordnung
+Das System MUSS (SHALL) jeden Verein mit einem kleinen neutralen Kontenplan vorbelegen (Geld-, Transit-, Steuer-, Einnahme- und Ausgabekonten mit Standardsphäre) und jedes Konto die Kontonummer aus dem DATEV-Kontenplan der Steuerberatung tragen lassen; der Warnbereich MUSS bebuchte Konten ohne DATEV-Nummer auflisten.
 
-#### Scenario: Missing DATEV number
-- **WHEN** an account with postings in the report range has no DATEV number
-- **THEN** the EÜR warning panel shows how many accounts lack it and links to the chart
+#### Scenario: Fehlende DATEV-Nummer
+- **WHEN** ein Konto mit Buchungen im Berichtszeitraum keine DATEV-Nummer hat
+- **THEN** zeigt der EÜR-Warnbereich, wie vielen Konten sie fehlt, und verlinkt auf den Kontenplan
 
-### Requirement: Payments post through an idempotent sync
-The system SHALL post each confirmed payment allocation exactly once and each reversed allocation's posting exactly once as a reversal, before any journal read, report or lock change.
+### Requirement: Zahlungen werden über einen idempotenten Abgleich gebucht
+Das System MUSS (SHALL) jede bestätigte Zahlungszuordnung genau einmal buchen und die Buchung jeder rückgängig gemachten Zuordnung genau einmal als Storno buchen, und zwar vor jedem Lesen des Buchungsjournals, jedem Bericht und jeder Änderung der Sperre.
 
-#### Scenario: Payment reversed
-- **WHEN** a cash payment of 60 € is reversed
-- **THEN** the journal shows the original posting and one reversal entry, and the original stays unchanged
+#### Scenario: Zahlung storniert
+- **WHEN** eine Barzahlung über 60 € storniert wird
+- **THEN** zeigt das Buchungsjournal die ursprüngliche Buchung und eine Stornobuchung, und das Original bleibt unverändert
 
-### Requirement: DATEV rows with explicit tax lines
-The system SHALL export each journal entry as DATEV rows of one account against one counter-account whose amounts add up to the entry, without BU keys, with tax lines as separate postings to the mapped tax accounts.
+### Requirement: DATEV-Zeilen mit ausdrücklichen Steuerzeilen
+Das System MUSS (SHALL) jede Buchung als DATEV-Zeilen mit je einem Konto gegen ein Gegenkonto exportieren, deren Beträge sich zur Buchung summieren, ohne BU-Schlüssel und mit Steuerpositionen als separaten Buchungen auf die zugeordneten Steuerkonten.
 
-#### Scenario: Expense at 19 %
-- **WHEN** an expense of 119 € with 19 % VAT is exported
-- **THEN** the batch contains one row of 100 € to the expense account and one row of 19 € to the input-tax account, both against the bank account
+#### Scenario: Ausgabe zu 19 %
+- **WHEN** eine Ausgabe von 119 € mit 19 % USt exportiert wird
+- **THEN** enthält der Stapel eine Zeile über 100 € auf das Aufwandskonto und eine Zeile über 19 € auf das Vorsteuerkonto, beide gegen das Bankkonto
 
-### Requirement: Cancelled receipts free their donations
-The system SHALL keep a cancelled donation receipt with its reason and stored PDF, and SHALL let its donations be put on a new receipt with a new number.
+### Requirement: Stornierte Spendenbescheinigungen geben ihre Spenden frei
+Das System MUSS (SHALL) eine stornierte Spendenbescheinigung mit ihrem Grund und gespeichertem PDF behalten und MUSS erlauben, ihre Spenden auf eine neue Bestätigung mit neuer Nummer zu setzen.
 
-#### Scenario: Reissue after cancellation
-- **WHEN** a receipt is cancelled with the reason "Name falsch geschrieben"
-- **THEN** the receipt shows as cancelled and a new receipt for the same donation can be issued
+#### Scenario: Neuausstellung nach Storno
+- **WHEN** eine Bestätigung mit dem Grund "Name falsch geschrieben" storniert wird
+- **THEN** wird die Bestätigung als storniert angezeigt und eine neue Bestätigung für dieselbe Spende kann ausgestellt werden
 
-### Requirement: Receipts post when paid
-The system SHALL keep a recorded receipt out of the journal until it is paid and SHALL then post its lines on the payment date against the chosen money account; voiding a paid receipt SHALL post a reversal.
+### Requirement: Belege werden bei Zahlung gebucht
+Das System MUSS (SHALL) einen erfassten Beleg aus dem Buchungsjournal heraushalten, bis er bezahlt ist, und MUSS dann seine Positionen zum Zahlungsdatum gegen das gewählte Geldkonto buchen; das Annullieren eines bezahlten Belegs MUSS ein Storno buchen.
 
-#### Scenario: Receipt paid later
-- **WHEN** a receipt dated 1 April is paid by bank on 3 April
-- **THEN** the journal shows the expense on 3 April and the receipt is frozen
+#### Scenario: Beleg später bezahlt
+- **WHEN** ein Beleg vom 1. April am 3. April per Bank bezahlt wird
+- **THEN** zeigt das Buchungsjournal die Ausgabe am 3. April und der Beleg ist festgeschrieben
 
-### Requirement: E-invoice amount due equals the printed total
-The system SHALL produce XRechnung files whose amount due equals the issued invoice's gross total, putting rounding differences between gross and net-plus-tax into the rounding amount.
+### Requirement: Zahlbetrag der E-Rechnung entspricht der gedruckten Summe
+Das System MUSS (SHALL) XRechnung-Dateien erzeugen, deren Zahlbetrag der Bruttosumme der ausgestellten Rechnung entspricht, wobei Rundungsdifferenzen zwischen Brutto und Netto plus Steuer in den Rundungsbetrag fließen.
 
-#### Scenario: Rounding case
-- **WHEN** a 19 % line of 10.01 € gross is issued as XRechnung
-- **THEN** the file's amount due is 10.01 € and the KoSIT validator accepts it
+#### Scenario: Rundungsfall
+- **WHEN** eine 19-%-Position über 10,01 € brutto als XRechnung ausgestellt wird
+- **THEN** beträgt der Zahlbetrag der Datei 10,01 € und der KoSIT-Validator akzeptiert sie
 
-### Requirement: E-invoices are mailed with their XML
-The system SHALL attach the stored XRechnung XML to the invoice mail and send it to the recipient's e-invoice address when that is an e-mail address.
+### Requirement: E-Rechnungen werden mit ihrer XML verschickt
+Das System MUSS (SHALL) das gespeicherte XRechnung-XML an die Rechnungs-E-Mail anhängen und sie an die E-Rechnungsadresse der Empfänger:in senden, wenn diese eine E-Mail-Adresse ist.
 
-#### Scenario: City with an e-invoice mailbox
-- **WHEN** an issued XRechnung invoice to a city with e-invoice address rechnung@stadt.example is mailed
-- **THEN** one mail goes to rechnung@stadt.example with the PDF and the XML attached
+#### Scenario: Stadt mit E-Rechnungs-Postfach
+- **WHEN** eine ausgestellte XRechnung an eine Stadt mit der E-Rechnungsadresse rechnung@stadt.example per E-Mail versendet wird
+- **THEN** geht eine E-Mail an rechnung@stadt.example mit PDF und XML im Anhang
 
-### Requirement: In-kind donation receipts
-The system SHALL record in-kind donations with value, description and origin and confirm each on the BMF template for Sachzuwendungen, never on a collective receipt.
+### Requirement: Bescheinigungen über Sachspenden
+Das System MUSS (SHALL) Sachspenden mit Wert, Beschreibung und Herkunft erfassen und jede auf dem BMF-Muster für Sachzuwendungen bestätigen, nie auf einer Sammelbestätigung.
 
-#### Scenario: Annual run with goods
-- **WHEN** a donor gave money and goods in a year and the annual receipts are issued
-- **THEN** the donor gets one money receipt and a separate Sachzuwendung receipt
+#### Scenario: Jahreslauf mit Sachspenden
+- **WHEN** eine spendende Person in einem Jahr Geld und Sachen gespendet hat und die Jahresbestätigungen ausgestellt werden
+- **THEN** erhält sie eine Bestätigung über Geldzuwendungen und eine separate Bestätigung über Sachzuwendungen
 
-### Requirement: Volunteer allowance limits
-The system SHALL track Übungsleiter- and Ehrenamtspauschale payments per person and year together with declared use elsewhere, and warn when a payment exceeds the tax-free limit of that year.
+### Requirement: Grenzen für Übungsleiter- und Ehrenamtspauschale
+Das System MUSS (SHALL) Zahlungen aus Übungsleiter- und Ehrenamtspauschale je Person und Jahr zusammen mit der anderweitig angegebenen Nutzung erfassen und warnen, wenn eine Zahlung den steuerfreien Höchstbetrag des Jahres überschreitet.
 
-#### Scenario: Over the limit
-- **WHEN** a trainer with 1,000 € declared elsewhere receives 2,500 € in 2026
-- **THEN** the rest shows 200 € over the 3,300 € limit and the payment response warns about it
+#### Scenario: Über der Grenze
+- **WHEN** ein:e Trainer:in mit 1.000 € anderweitig angegebener Nutzung 2026 2.500 € erhält
+- **THEN** zeigt der Rest 200 € über der Grenze von 3.300 € und die Antwort zur Zahlung warnt davor
 
-### Requirement: Incoming e-invoices fill the receipt form
-The system SHALL read uploaded XRechnung, UBL, CII and ZUGFeRD files and suggest supplier, number, dates and gross amounts per VAT rate for the receipt, while storing the file unchanged.
+### Requirement: Eingehende E-Rechnungen füllen die Belegmaske
+Das System MUSS (SHALL) hochgeladene XRechnung-, UBL-, CII- und ZUGFeRD-Dateien auslesen und für den Beleg Lieferant, Nummer, Daten und Bruttobeträge je Umsatzsteuersatz vorschlagen, während die Datei unverändert gespeichert wird.
 
-#### Scenario: ZUGFeRD PDF
-- **WHEN** a ZUGFeRD PDF with an invoice of 238,00 € at 19 % is uploaded
-- **THEN** the receipt form shows the supplier, the invoice number and one line of 238,00 € with 19 %
+#### Scenario: ZUGFeRD-PDF
+- **WHEN** ein ZUGFeRD-PDF mit einer Rechnung über 238,00 € zu 19 % hochgeladen wird
+- **THEN** zeigt das Belegformular den Lieferanten, die Rechnungsnummer und eine Position über 238,00 € mit 19 %
 
-### Requirement: Budget against the books
-The system SHALL keep planned net amounts per income and expense account and year and show them next to the booked net amounts with the variance.
+### Requirement: Budget im Abgleich mit der Buchhaltung
+Das System MUSS (SHALL) geplante Nettobeträge je Einnahme- und Ausgabekonto und Jahr führen und sie neben den gebuchten Nettobeträgen mit der Abweichung anzeigen.
 
-#### Scenario: Overspent account
-- **WHEN** 150 € are planned for material and 180 € are booked
-- **THEN** the variance shows +30 € marked as over plan
+#### Scenario: Überzogenes Konto
+- **WHEN** für Material 150 € geplant und 180 € gebucht sind
+- **THEN** zeigt die Abweichung +30 €, markiert als über Plan
 
-### Requirement: Treasurer's report
-The system SHALL produce a yearly treasurer's report as PDF with opening and closing balances per money account and income, expenses and result by sphere and account, including the EÜR's data-quality hints.
+### Requirement: Kassenbericht
+Das System MUSS (SHALL) einen jährlichen Kassenbericht als PDF erzeugen, mit Anfangs- und Endsalden je Geldkonto sowie Einnahmen, Ausgaben und Ergebnis nach Sphäre und Konto, einschließlich der Hinweise zur Datenqualität aus der EÜR.
 
-#### Scenario: Open bank lines
-- **WHEN** bank transactions of the year are still unmatched
-- **THEN** the report lists the hint that the EÜR is incomplete
+#### Scenario: Offene Kontobewegungen
+- **WHEN** Kontobewegungen des Jahres noch nicht zugeordnet sind
+- **THEN** enthält der Bericht den Hinweis, dass die EÜR unvollständig ist
 
-### Requirement: Sending donation receipts
-The system SHALL send issued donation receipts by e-mail with their stored PDF, once per receipt, and collect receipts for donors without e-mail or with a letter preference into one printable PDF.
+### Requirement: Spendenbescheinigungen versenden
+Das System MUSS (SHALL) ausgestellte Spendenbescheinigungen mit ihrem gespeicherten PDF per E-Mail versenden, einmal pro Bestätigung, und Bestätigungen für spendende Personen ohne E-Mail oder mit Briefpräferenz in einem druckbaren PDF sammeln.
 
-#### Scenario: Donor without e-mail
-- **WHEN** the year's receipts are sent and one donor has no e-mail address
-- **THEN** that receipt is listed for printing and appears in the letter PDF
+#### Scenario: Spender:in ohne E-Mail
+- **WHEN** die Bestätigungen des Jahres versendet werden und eine spendende Person keine E-Mail-Adresse hat
+- **THEN** wird diese Bestätigung zum Drucken aufgeführt und erscheint im Brief-PDF
 
-### Requirement: Printed dunning letters
-The system SHALL render a reminder letter for each selected open invoice and refuse when none is open any more.
+### Requirement: Gedruckte Mahnschreiben
+Das System MUSS (SHALL) für jede ausgewählte offene Rechnung einen Mahnbrief rendern und ablehnen, wenn keine mehr offen ist.
 
-#### Scenario: Invoice paid meanwhile
-- **WHEN** dunning letters are requested only for an invoice that has been paid in full
-- **THEN** the request is refused with 409 and no PDF is produced
+#### Scenario: Rechnung inzwischen bezahlt
+- **WHEN** Mahnbriefe nur für eine Rechnung angefordert werden, die vollständig bezahlt wurde
+- **THEN** wird die Anfrage mit 409 abgelehnt und kein PDF erzeugt
 
-### Requirement: Own tax rates
-The system SHALL let the club add tax rates with validity and tax accounts, SHALL never change a rate's percentage, and SHALL refuse to end a rate before a booking made with it.
+### Requirement: Eigene Steuersätze
+Das System MUSS (SHALL) dem Verein erlauben, Steuersätze mit Gültigkeit und Steuerkonten anzulegen, DARF den Prozentsatz eines Satzes NIE ändern und MUSS ablehnen, einen Satz vor einer mit ihm erfassten Buchung enden zu lassen.
 
-#### Scenario: Ending a used rate too early
-- **WHEN** a rate was used on 01.03.2026 and its end is set to 28.02.2026
-- **THEN** the change is refused
+#### Scenario: Verwendeten Steuersatz zu früh beenden
+- **WHEN** ein Satz am 01.03.2026 verwendet wurde und sein Ende auf den 28.02.2026 gesetzt wird
+- **THEN** wird die Änderung abgelehnt
 

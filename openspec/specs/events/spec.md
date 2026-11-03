@@ -1,121 +1,121 @@
 # events Specification
 
 ## Purpose
-The events capability covers calendars, events and RSVPs with ICS feeds, recurring events, and paid events and courses with price groups, capacity and waitlist (B P01, P02, P03). It is the first post-MVP module: none of it is part of the MVP milestone, but it is scheduled before a club cancels easyVerein. Items that B rates "should" or "could" are marked as such in the requirement name.
+Die Capability events umfasst Kalender, Termine und Rückmeldungen (RSVPs) mit ICS-Feeds, wiederkehrende Termine sowie kostenpflichtige Veranstaltungen und Kurse mit Preisgruppen, Kapazität und Warteliste (B P01, P02, P03). Sie ist das erste Post-MVP-Modul: Nichts davon gehört zum MVP-Meilenstein, es ist aber eingeplant, bevor ein Verein easyVerein kündigt. Punkte, die B als „sollte“ oder „könnte“ bewertet, sind im Namen der Anforderung entsprechend gekennzeichnet.
 ## Requirements
-### Requirement: Calendars with group visibility
-The system SHALL support several calendars, each visible to selected groups, and SHALL show a member only events of calendars visible to one of their current groups.
+### Requirement: Kalender mit Gruppensichtbarkeit
+Das System MUSS (SHALL) mehrere Kalender unterstützen, die jeweils für ausgewählte Gruppen sichtbar sind, und MUSS einem Mitglied nur Termine aus Kalendern anzeigen, die für eine seiner aktuellen Gruppen sichtbar sind.
 
-#### Scenario: Hidden calendar
-- **WHEN** a member who is not in "Vorstand" opens the calendar
-- **THEN** events of the "Vorstand" calendar are not shown
+#### Scenario: Verborgener Kalender
+- **WHEN** ein Mitglied, das nicht in "Vorstand" ist, den Kalender öffnet
+- **THEN** werden Termine des Kalenders "Vorstand" nicht angezeigt
 
-### Requirement: Events
-The system SHALL keep events with title, description, location (free text or room), start and end in the organisation's time zone, minimum and maximum participants, registration window and participation mode (closed, open, with companion, public sign-up).
+### Requirement: Termine
+Das System MUSS (SHALL) Termine mit Titel, Beschreibung, Ort (Freitext oder Raum), Beginn und Ende in der Zeitzone der Organisation, minimaler und maximaler Teilnehmerzahl, Anmeldezeitraum und Teilnahmemodus (geschlossen, offen, mit Begleitung, öffentliche Anmeldung) führen.
 
-#### Scenario: Registration window closed
-- **WHEN** a member tries to register after the registration window ended
-- **THEN** the registration is refused
+#### Scenario: Anmeldezeitraum abgelaufen
+- **WHEN** ein Mitglied versucht, sich nach Ende des Anmeldezeitraums anzumelden
+- **THEN** wird die Anmeldung abgelehnt
 
-### Requirement: RSVP states
-The system SHALL track per participant the states `invited`, `yes`, `maybe`, `no`, `attended` and `not attended`.
+### Requirement: RSVP-Status
+Das System MUSS (SHALL) je Teilnehmer:in die Status `invited`, `yes`, `maybe`, `no`, `attended` und `not attended` erfassen.
 
-#### Scenario: Attendance after the event
-- **WHEN** a trainer marks a participant with RSVP `yes` as present after the event
-- **THEN** the state becomes `attended`
+#### Scenario: Anwesenheit nach dem Termin
+- **WHEN** ein:e Trainer:in eine:n Teilnehmer:in mit RSVP `yes` nach dem Termin als anwesend markiert
+- **THEN** wird der Status `attended`
 
-### Requirement: Calendar views
-The system SHALL show month, week, day and list views with a toggle for a birthday overlay that respects field restrictions on date of birth.
+### Requirement: Kalenderansichten
+Das System MUSS (SHALL) Monats-, Wochen-, Tages- und Listenansichten mit einem Schalter für eine Geburtstagsebene anzeigen, die Feldeinschränkungen für das Geburtsdatum beachtet.
 
-#### Scenario: Birthday overlay restricted
-- **WHEN** a user without the date-of-birth right switches on the birthday overlay
-- **THEN** no birthdays are shown
+#### Scenario: Geburtstagsebene eingeschränkt
+- **WHEN** ein:e Benutzer:in ohne Recht auf das Geburtsdatum die Geburtstagsebene einschaltet
+- **THEN** werden keine Geburtstage angezeigt
 
-### Requirement: ICS feeds and import
-The system SHALL publish personal and per-calendar ICS feeds addressed by secret tokens that can be rotated, and import external calendars from ICS.
+### Requirement: ICS-Feeds und Import
+Das System MUSS (SHALL) persönliche und kalenderbezogene ICS-Feeds veröffentlichen, die über rotierbare geheime Token adressiert werden, und externe Kalender aus ICS importieren.
 
-#### Scenario: Token rotated
-- **WHEN** a member rotates their feed token
-- **THEN** the old feed URL stops working
+#### Scenario: Token rotiert
+- **WHEN** ein Mitglied sein Feed-Token rotiert
+- **THEN** funktioniert die alte Feed-URL nicht mehr
 
-### Requirement: Recurring events
-The system SHALL define recurring events by RRULE with exceptions, edit "this", "this and following" or "all" occurrences, and attach RSVPs to single occurrences.
+### Requirement: Wiederkehrende Termine
+Das System MUSS (SHALL) wiederkehrende Termine per RRULE mit Ausnahmen definieren, „diesen“, „diesen und folgende“ oder „alle“ Termine einer Serie bearbeiten und Rückmeldungen einzelnen Terminen der Serie zuordnen.
 
-#### Scenario: Holiday exception
-- **WHEN** a weekly training has an exception on 24 December
-- **THEN** no occurrence exists on that date and other occurrences are unchanged
+#### Scenario: Ausnahme an einem Feiertag
+- **WHEN** ein wöchentliches Training eine Ausnahme am 24. Dezember hat
+- **THEN** gibt es an diesem Datum keinen Termin und die übrigen Termine bleiben unverändert
 
-#### Scenario: Edit following
-- **WHEN** a trainer moves "this and following" occurrences from 18:00 to 19:00 starting 1 March
-- **THEN** earlier occurrences keep 18:00
+#### Scenario: Folgende bearbeiten
+- **WHEN** ein:e Trainer:in „diesen und folgende“ Termine ab dem 1. März von 18:00 auf 19:00 verschiebt
+- **THEN** behalten frühere Termine 18:00
 
-### Requirement: Price groups with invoices
-The system SHALL support price groups per event (for example member, non-member, child) and create an invoice through the invoicing capability when a participation is confirmed.
+### Requirement: Preisgruppen mit Rechnungen
+Das System MUSS (SHALL) Preisgruppen je Termin unterstützen (zum Beispiel Mitglied, Nichtmitglied, Kind) und über die Capability invoicing eine Rechnung erstellen, wenn eine Teilnahme bestätigt wird.
 
-#### Scenario: Paid course
-- **WHEN** a non-member's participation in a course with a 4500-cent non-member price is confirmed
-- **THEN** an invoice for 4500 cents is issued to that person
+#### Scenario: Kostenpflichtiger Kurs
+- **WHEN** die Teilnahme eines Nichtmitglieds an einem Kurs mit einem Nichtmitgliederpreis von 4500 Cent bestätigt wird
+- **THEN** wird dieser Person eine Rechnung über 4500 Cent ausgestellt
 
-### Requirement: Capacity and waitlist
-The system SHALL enforce maximum capacity with an ordered waitlist and promote the first waiting person automatically, with a mail, when a place frees.
+### Requirement: Kapazität und Warteliste
+Das System MUSS (SHALL) die maximale Kapazität mit einer geordneten Warteliste durchsetzen und die erste wartende Person automatisch mit einer E-Mail nachrücken lassen, wenn ein Platz frei wird.
 
-#### Scenario: Promotion
-- **WHEN** a confirmed participant cancels in a full course
-- **THEN** the first person on the waitlist is promoted and notified
+#### Scenario: Nachrücken
+- **WHEN** ein:e bestätigte:r Teilnehmer:in in einem vollen Kurs absagt
+- **THEN** rückt die erste Person auf der Warteliste nach und wird benachrichtigt
 
-### Requirement: Weekly participation cap (could)
-The system SHALL optionally cap participations per member and week per group, using the highest, lowest or summed value when a member is in several groups.
+### Requirement: Wöchentliche Teilnahmegrenze (könnte)
+Das System MUSS (SHALL) optional die Teilnahmen je Mitglied und Woche je Gruppe begrenzen und dabei den höchsten, niedrigsten oder summierten Wert verwenden, wenn ein Mitglied in mehreren Gruppen ist.
 
-#### Scenario: Cap reached
-- **WHEN** a member with a cap of 2 per week registers for a third session that week
-- **THEN** the registration is refused
+#### Scenario: Grenze erreicht
+- **WHEN** ein Mitglied mit einer Grenze von 2 pro Woche sich für eine dritte Einheit in dieser Woche anmeldet
+- **THEN** wird die Anmeldung abgelehnt
 
-### Requirement: Wall-clock event times
-The system SHALL store event start and end as wall-clock times in the organisation's time zone, keep the same local time for every occurrence of a series across daylight-saving changes, and publish ICS feeds with the organisation's TZID.
+### Requirement: Terminzeiten als Ortszeit
+Das System MUSS (SHALL) Beginn und Ende eines Termins als Ortszeit (Wall-Clock) in der Zeitzone der Organisation speichern, für jeden Termin einer Serie über Zeitumstellungen hinweg dieselbe lokale Uhrzeit beibehalten und ICS-Feeds mit der TZID der Organisation veröffentlichen.
 
-#### Scenario: Training across the clock change
-- **WHEN** a weekly training at 18:00 has occurrences before and after the end of daylight saving time
-- **THEN** every occurrence starts at 18:00 local time
+#### Scenario: Training über die Zeitumstellung
+- **WHEN** ein wöchentliches Training um 18:00 Termine vor und nach dem Ende der Sommerzeit hat
+- **THEN** beginnt jeder Termin um 18:00 Ortszeit
 
-### Requirement: Recurrence subset
-The system SHALL create recurring events daily, weekly on chosen weekdays (optionally every n weeks) or monthly on the start day, ending by date or count; a monthly series on the 31st SHALL skip months without that day.
+### Requirement: Teilmenge der Wiederholungsregeln
+Das System MUSS (SHALL) wiederkehrende Termine täglich, wöchentlich an gewählten Wochentagen (optional alle n Wochen) oder monatlich am Starttag anlegen, endend nach Datum oder Anzahl; eine monatliche Serie am 31. MUSS Monate ohne diesen Tag überspringen.
 
-#### Scenario: Monthly on the 31st
-- **WHEN** a monthly event starts on 31 January with four occurrences
-- **THEN** they fall on 31 January, 31 March, 31 May and 31 July
+#### Scenario: Monatlich am 31.
+- **WHEN** ein monatlicher Termin am 31. Januar mit vier Terminen beginnt
+- **THEN** fallen sie auf den 31. Januar, 31. März, 31. Mai und 31. Juli
 
-### Requirement: Public calendar widget
-The system SHALL publish a calendar's upcoming dates without descriptions or participants only when the calendar is public and not limited to groups, and allow framing only by the websites the club lists.
+### Requirement: Öffentliches Kalender-Widget
+Das System MUSS (SHALL) die anstehenden Termine eines Kalenders ohne Beschreibungen oder Teilnehmende nur dann veröffentlichen, wenn der Kalender öffentlich und nicht auf Gruppen beschränkt ist, und das Einbetten (Framing) nur durch die vom Verein aufgeführten Websites erlauben.
 
-#### Scenario: Internal note stays internal
-- **WHEN** a public calendar's event has an internal description
-- **THEN** the public list shows title, time and place but not the description
+#### Scenario: Interne Notiz bleibt intern
+- **WHEN** ein Termin eines öffentlichen Kalenders eine interne Beschreibung hat
+- **THEN** zeigt die öffentliche Liste Titel, Zeit und Ort, aber nicht die Beschreibung
 
-### Requirement: ICS import
-The system SHALL import events from an ICS file into a calendar the user may write to, in the club's time zone, and SHALL not import an event with the same UID twice into the same calendar.
+### Requirement: ICS-Import
+Das System MUSS (SHALL) Termine aus einer ICS-Datei in einen Kalender importieren, in den die Benutzer:in schreiben darf, in der Zeitzone des Vereins, und DARF einen Termin mit derselben UID NICHT zweimal in denselben Kalender importieren.
 
-#### Scenario: Same file twice
-- **WHEN** the same ICS file with two events is imported twice
-- **THEN** the second import adds nothing and reports two duplicates
+#### Scenario: Dieselbe Datei zweimal
+- **WHEN** dieselbe ICS-Datei mit zwei Terminen zweimal importiert wird
+- **THEN** fügt der zweite Import nichts hinzu und meldet zwei Dubletten
 
-### Requirement: Attendance list
-The system SHALL export the recorded attendance of a calendar for a period of at most one year as a member-by-session table, limited to the members the user may read.
+### Requirement: Anwesenheitsliste
+Das System MUSS (SHALL) die erfasste Anwesenheit eines Kalenders für einen Zeitraum von höchstens einem Jahr als Tabelle Mitglied mal Einheit exportieren, beschränkt auf die Mitglieder, die die Benutzer:in lesen darf.
 
-#### Scenario: Two sessions attended
-- **WHEN** a member attended two of three sessions in September
-- **THEN** their row shows two marks and the total 2
+#### Scenario: Zwei Einheiten besucht
+- **WHEN** ein Mitglied im September zwei von drei Einheiten besucht hat
+- **THEN** zeigt seine Zeile zwei Markierungen und die Summe 2
 
-### Requirement: Reduced fee for children
-The system SHALL invoice a confirmed participant the event's reduced fee when their age on the event day is at most the event's age limit, and SHALL issue no invoice when that fee is zero.
+### Requirement: Ermäßigter Beitrag für Kinder
+Das System MUSS (SHALL) einer bestätigten teilnehmenden Person den ermäßigten Beitrag des Termins in Rechnung stellen, wenn ihr Alter am Tag des Termins höchstens der Altersgrenze des Termins entspricht, und MUSS keine Rechnung ausstellen, wenn dieser Beitrag null ist.
 
-#### Scenario: Child and adult
-- **WHEN** a 12-year-old and an adult confirm an event of 30 € with 10 € for children up to 13
-- **THEN** the child is invoiced 10 € and the adult 30 €
+#### Scenario: Kind und erwachsene Person
+- **WHEN** ein 12-jähriges Kind und eine erwachsene Person einen Termin zu 30 € mit 10 € für Kinder bis 13 bestätigen
+- **THEN** werden dem Kind 10 € und der erwachsenen Person 30 € in Rechnung gestellt
 
-### Requirement: Attendance without connection
-The system SHALL keep attendance marks made without a connection on the device and send them when the connection returns, without losing a mark silently.
+### Requirement: Anwesenheit ohne Verbindung
+Das System MUSS (SHALL) ohne Verbindung erfasste Anwesenheitsmarkierungen auf dem Gerät behalten und senden, sobald die Verbindung zurückkehrt, ohne eine Markierung stillschweigend zu verlieren.
 
-#### Scenario: Hall without signal
-- **WHEN** a trainer marks a member present while offline
-- **THEN** the mark shows at once with a waiting notice, and it is stored on the server after the connection returns
+#### Scenario: Halle ohne Empfang
+- **WHEN** ein:e Trainer:in ein Mitglied offline als anwesend markiert
+- **THEN** erscheint die Markierung sofort mit einem Warte-Hinweis und wird nach Rückkehr der Verbindung auf dem Server gespeichert
 

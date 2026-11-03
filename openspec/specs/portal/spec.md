@@ -1,23 +1,23 @@
 # portal Specification
 
 ## Purpose
-TBD - created by archiving change portal-settings. Update Purpose after archive.
+TBD – entstanden durch Archivierung der Änderung portal-settings. Purpose nach der Archivierung aktualisieren.
 ## Requirements
-### Requirement: Portal settings
-The system SHALL give a member a portal function only if one of their current groups allows it and none denies it, falling back to the club setting, and SHALL refuse requests for functions that are off.
+### Requirement: Portaleinstellungen
+Das System MUSS (SHALL) einem Mitglied eine Portalfunktion nur gewähren, wenn eine seiner aktuellen Gruppen sie erlaubt und keine sie verbietet, andernfalls gilt die Vereinseinstellung, und MUSS Anfragen für abgeschaltete Funktionen ablehnen.
 
-#### Scenario: Resignation off, allowed by a group
-- **WHEN** the club switches resignation off and the member is in a group that allows it
-- **THEN** the member can resign in the portal
+#### Scenario: Kündigung abgeschaltet, durch eine Gruppe erlaubt
+- **WHEN** der Verein die Kündigung abschaltet und das Mitglied in einer Gruppe ist, die sie erlaubt
+- **THEN** kann das Mitglied im Portal kündigen
 
-#### Scenario: Bank change denied by a group
-- **WHEN** a member's group denies bank changes
-- **THEN** an IBAN change request from the portal is refused with 403
+#### Scenario: Bankänderung durch eine Gruppe verboten
+- **WHEN** die Gruppe eines Mitglieds Bankänderungen verbietet
+- **THEN** wird ein IBAN-Änderungsantrag aus dem Portal mit 403 abgelehnt
 
-### Requirement: Own donation receipts in the portal
-The system SHALL show members the donation receipts issued to their own person and provide the stored PDF of valid receipts only.
+### Requirement: Eigene Spendenbescheinigungen im Portal
+Das System MUSS (SHALL) Mitgliedern die an ihre eigene Person ausgestellten Spendenbescheinigungen anzeigen und das gespeicherte PDF nur für gültige Bescheinigungen bereitstellen.
 
-#### Scenario: Cancelled receipt
-- **WHEN** a receipt is cancelled
-- **THEN** the portal lists it as cancelled and refuses its PDF
+#### Scenario: Stornierte Bescheinigung
+- **WHEN** eine Bescheinigung storniert wird
+- **THEN** listet das Portal sie als storniert und verweigert ihr PDF
 

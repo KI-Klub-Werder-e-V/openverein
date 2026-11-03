@@ -1,12 +1,12 @@
 # club-operations Specification
 
 ## Purpose
-TBD - created by archiving change tasks. Update Purpose after archive.
+TBD – entstanden durch Archivierung der Änderung tasks. Purpose nach der Archivierung aktualisieren.
 ## Requirements
-### Requirement: Tasks
-The system SHALL let every user create tasks with an assignee and a due date, SHALL let only the creator, the assignee or an administrator change a task, and SHALL name a linked member only to users who may read that member.
+### Requirement: Aufgaben
+Das System MUSS (SHALL) allen Benutzer:innen erlauben, Aufgaben mit zuständiger Person und Fälligkeitsdatum anzulegen, MUSS Änderungen an einer Aufgabe nur der erstellenden Person, der zuständigen Person oder einem Admin erlauben und MUSS ein verknüpftes Mitglied nur Benutzer:innen anzeigen, die dieses Mitglied lesen dürfen.
 
-#### Scenario: Member outside the viewer's scope
-- **WHEN** a trainer of the tennis division views a task linked to a football member
-- **THEN** the task is shown without the member
+#### Scenario: Mitglied außerhalb des eigenen Bereichs
+- **WHEN** ein:e Trainer:in der Tennisabteilung eine Aufgabe ansieht, die mit einem Mitglied der Fußballabteilung verknüpft ist
+- **THEN** wird die Aufgabe ohne das Mitglied angezeigt
 

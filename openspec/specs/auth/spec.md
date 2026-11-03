@@ -1,128 +1,128 @@
 # auth Specification
 
 ## Purpose
-The auth capability covers sign-in for admins, finance users and members: password login, sessions, TOTP that is mandatory for finance roles, e-mailed one-time codes for members and invitations (B M33, with the portal login rules of M29). Items that B rates "should" or "could" are marked as such in the requirement name; everything else is MVP behaviour.
+Die Capability auth umfasst die Anmeldung für Admins, Finanz-Benutzer:innen und Mitglieder: Passwort-Anmeldung, Sitzungen, TOTP als Pflicht für Finanzrollen, per E-Mail versandte Einmalcodes für Mitglieder sowie Einladungen (B M33, mit den Portal-Anmelderegeln aus M29). Punkte, die B als „sollte“ oder „könnte“ einstuft, sind im Namen der Anforderung entsprechend markiert; alles andere ist MVP-Verhalten.
 ## Requirements
-### Requirement: Password login
-The system SHALL accept passwords of 12 to 128 characters, store them as Argon2id hashes, and reject any password found in the bundled breached-password list; an online k-anonymity check SHALL be optional and off by default.
+### Requirement: Passwort-Anmeldung
+Das System MUSS (SHALL) Passwörter mit 12 bis 128 Zeichen akzeptieren, sie als Argon2id-Hashes speichern und jedes Passwort ablehnen, das in der mitgelieferten Liste kompromittierter Passwörter steht; eine Online-Prüfung per k-Anonymität MUSS optional und standardmäßig ausgeschaltet sein.
 
-#### Scenario: Short password rejected
-- **WHEN** a user sets an 11-character password
-- **THEN** the system rejects it with a message naming the 12-character minimum
+#### Scenario: Kurzes Passwort abgelehnt
+- **WHEN** eine Benutzer:in ein Passwort mit 11 Zeichen setzt
+- **THEN** lehnt das System es mit einer Meldung ab, die das Minimum von 12 Zeichen nennt
 
-#### Scenario: Breached password rejected
-- **WHEN** a user sets a password that is in the bundled breached-password list
-- **THEN** the system rejects it and asks for another one
+#### Scenario: Kompromittiertes Passwort abgelehnt
+- **WHEN** eine Benutzer:in ein Passwort setzt, das in der mitgelieferten Liste kompromittierter Passwörter steht
+- **THEN** lehnt das System es ab und bittet um ein anderes
 
-### Requirement: Login without tenant code
-The system SHALL sign users in with e-mail and credentials only and SHALL NOT ask for a club code.
+### Requirement: Anmeldung ohne Mandantencode
+Das System MUSS (SHALL) Benutzer:innen nur mit E-Mail und Zugangsdaten anmelden und DARF NICHT nach einem Vereinscode fragen.
 
-#### Scenario: Plain login form
-- **WHEN** a user opens the login page
-- **THEN** the form asks only for e-mail and password (or a one-time code), not for a club code
+#### Scenario: Schlichtes Anmeldeformular
+- **WHEN** eine Benutzer:in die Anmeldeseite öffnet
+- **THEN** fragt das Formular nur nach E-Mail und Passwort (oder einem Einmalcode), nicht nach einem Vereinscode
 
-### Requirement: TOTP mandatory for finance roles
-The system SHALL require TOTP enrolment for any user holding write access to fees, invoices, SEPA, banking, ledger or donations, and for the tax-adviser and cash-auditor roles; the requirement SHALL be enforced at every login and on every request, not only at enrolment, and enrolment SHALL issue ten hashed single-use recovery codes.
+### Requirement: TOTP als Pflicht für Finanzrollen
+Das System MUSS (SHALL) die TOTP-Einrichtung für alle Benutzer:innen mit Schreibzugriff auf Beiträge, Rechnungen, SEPA, Bank, Buchhaltung oder Spenden sowie für die Rollen Steuerberater:in und Kassenprüfer:in verlangen; die Pflicht MUSS bei jeder Anmeldung und jeder Anfrage durchgesetzt werden, nicht nur bei der Einrichtung, und die Einrichtung MUSS zehn gehashte Einmal-Wiederherstellungscodes ausgeben.
 
-#### Scenario: Finance role without TOTP
-- **WHEN** a user is granted the Treasurer role and has not enrolled TOTP
-- **THEN** finance write actions are refused until TOTP is enrolled
+#### Scenario: Finanzrolle ohne TOTP
+- **WHEN** eine Benutzer:in die Rolle Kassenwart:in erhält und TOTP nicht eingerichtet hat
+- **THEN** werden schreibende Finanzaktionen abgelehnt, bis TOTP eingerichtet ist
 
-#### Scenario: TOTP checked at login
-- **WHEN** a user with a finance role enters a correct password
-- **THEN** the session is created only after a valid TOTP code or recovery code
+#### Scenario: TOTP bei der Anmeldung geprüft
+- **WHEN** eine Benutzer:in mit Finanzrolle ein korrektes Passwort eingibt
+- **THEN** wird die Sitzung erst nach einem gültigen TOTP-Code oder Wiederherstellungscode angelegt
 
-#### Scenario: Recovery code is single-use
-- **WHEN** a recovery code has been used once
-- **THEN** using it again fails
+#### Scenario: Wiederherstellungscode nur einmal nutzbar
+- **WHEN** ein Wiederherstellungscode einmal benutzt wurde
+- **THEN** schlägt eine erneute Nutzung fehl
 
-### Requirement: Step-up TOTP for critical actions
-The system SHALL require a TOTP confirmation from the last 10 minutes before generating a collection run, releasing a downloaded collection run, moving the lock date, issuing donation receipts, creating API tokens, changing roles and running the full data export.
+### Requirement: Erneute TOTP-Bestätigung (Step-up) für kritische Aktionen
+Das System MUSS (SHALL) eine TOTP-Bestätigung aus den letzten 10 Minuten verlangen, bevor ein Einzugslauf erzeugt, ein heruntergeladener Einzugslauf freigegeben, die Periodensperre verschoben, Spendenbescheinigungen ausgestellt, API-Token angelegt, Rollen geändert oder der vollständige Datenexport ausgeführt wird.
 
-#### Scenario: Stale second factor
-- **WHEN** a treasurer whose last TOTP check was 25 minutes ago moves the lock date backwards
-- **THEN** the system asks for a fresh TOTP code before applying the change
+#### Scenario: Veralteter zweiter Faktor
+- **WHEN** eine Kassenwart:in, deren letzte TOTP-Prüfung 25 Minuten zurückliegt, die Periodensperre zurückverlegt
+- **THEN** fragt das System vor dem Anwenden der Änderung nach einem frischen TOTP-Code
 
-### Requirement: E-mailed one-time codes for members
-The system SHALL let members sign in with a 6-digit code sent by e-mail that expires after 10 minutes and allows 5 attempts; the e-mail link SHALL only fill in the code and SHALL require a click (POST) to sign in, so that mail scanners prefetching links cannot consume it. Members MAY additionally set a password or passkey.
+### Requirement: Per E-Mail versandte Einmalcodes für Mitglieder
+Das System MUSS (SHALL) Mitgliedern die Anmeldung mit einem 6-stelligen, per E-Mail versandten Code erlauben, der nach 10 Minuten abläuft und 5 Versuche zulässt; der Link in der E-Mail MUSS den Code nur eintragen und für die Anmeldung einen Klick (POST) verlangen, damit Mail-Scanner, die Links vorab abrufen, ihn nicht verbrauchen. Mitglieder DÜRFEN zusätzlich ein Passwort oder einen Passkey festlegen.
 
-#### Scenario: Code expires
-- **WHEN** a member enters a correct code 11 minutes after it was sent
-- **THEN** sign-in fails and a new code can be requested
+#### Scenario: Code läuft ab
+- **WHEN** ein Mitglied einen korrekten Code 11 Minuten nach dem Versand eingibt
+- **THEN** schlägt die Anmeldung fehl, und ein neuer Code kann angefordert werden
 
-#### Scenario: Scanner-safe link
-- **WHEN** a mail security scanner fetches the link in the code e-mail
-- **THEN** the code is not consumed and the member can still sign in
+#### Scenario: Scanner-sicherer Link
+- **WHEN** ein Mail-Sicherheitsscanner den Link in der Code-E-Mail abruft
+- **THEN** wird der Code nicht verbraucht, und das Mitglied kann sich weiterhin anmelden
 
-#### Scenario: Attempts limited
-- **WHEN** a wrong code is entered 5 times
-- **THEN** the code is invalidated
+#### Scenario: Versuche begrenzt
+- **WHEN** 5-mal ein falscher Code eingegeben wird
+- **THEN** wird der Code ungültig
 
-### Requirement: Admin-issued sign-in code
-The system SHALL let an admin issue a one-time code on a member's record so the member can sign in when the club's mail delivery fails, and SHALL audit-log each issued code.
+### Requirement: Vom Admin ausgestellter Anmeldecode
+Das System MUSS (SHALL) einem Admin erlauben, im Datensatz eines Mitglieds einen Einmalcode auszustellen, damit sich das Mitglied anmelden kann, wenn der E-Mail-Versand des Vereins fehlschlägt, und MUSS jeden ausgestellten Code im Audit-Protokoll erfassen.
 
-#### Scenario: Code without mail
-- **WHEN** an admin issues a code for a member whose e-mail bounced
-- **THEN** the admin sees the code once and the event is written to the audit log
+#### Scenario: Code ohne E-Mail
+- **WHEN** ein Admin einen Code für ein Mitglied ausstellt, dessen E-Mail unzustellbar war
+- **THEN** sieht der Admin den Code einmal, und das Ereignis wird ins Audit-Protokoll geschrieben
 
-### Requirement: Rate limiting and lockout
-The system SHALL rate-limit authentication endpoints per account and per IP and SHALL apply progressive lockout after 5 failed attempts, without any third-party captcha.
+### Requirement: Ratenbegrenzung und Sperre
+Das System MUSS (SHALL) Authentifizierungs-Endpunkte je Konto und je IP ratenbegrenzen und nach 5 Fehlversuchen eine progressive Sperre anwenden, ohne Captcha von Drittanbietern.
 
-#### Scenario: Progressive backoff
-- **WHEN** an account has 5 failed logins in a row
-- **THEN** further attempts are delayed with increasing wait times
+#### Scenario: Progressive Verzögerung
+- **WHEN** ein Konto 5 fehlgeschlagene Anmeldungen in Folge hat
+- **THEN** werden weitere Versuche mit zunehmenden Wartezeiten verzögert
 
-### Requirement: Sessions
-The system SHALL keep sessions in the database, list a user's active sessions with a "sign out other sessions" action, and expire sessions after inactivity (admin 8 hours, portal 30 days); session cookies SHALL be `HttpOnly`, `Secure` and `SameSite=Lax` with CSRF protection on state-changing requests.
+### Requirement: Sitzungen
+Das System MUSS (SHALL) Sitzungen in der Datenbank halten, die aktiven Sitzungen einer Benutzer:in mit einer Aktion „Andere Sitzungen abmelden“ auflisten und Sitzungen nach Inaktivität beenden (Admin 8 Stunden, Portal 30 Tage); Sitzungscookies MÜSSEN `HttpOnly`, `Secure` und `SameSite=Lax` sein, mit CSRF-Schutz für zustandsändernde Anfragen.
 
-#### Scenario: Admin idle timeout
-- **WHEN** an admin session has been idle for more than 8 hours
-- **THEN** the next request requires a new login
+#### Scenario: Leerlauf-Timeout für Admins
+- **WHEN** eine Admin-Sitzung länger als 8 Stunden inaktiv war
+- **THEN** verlangt die nächste Anfrage eine neue Anmeldung
 
-#### Scenario: Sign out elsewhere
-- **WHEN** a user chooses "sign out other sessions"
-- **THEN** every other session of that user is invalidated immediately
+#### Scenario: Andernorts abmelden
+- **WHEN** eine Benutzer:in „Andere Sitzungen abmelden“ wählt
+- **THEN** wird jede andere Sitzung dieser Benutzer:in sofort ungültig
 
-### Requirement: Invitations
-The system SHALL invite admins and members by e-mail with a single-use invitation that lets the invitee set up access; invitations SHALL expire and can be re-sent.
+### Requirement: Einladungen
+Das System MUSS (SHALL) Admins und Mitglieder per E-Mail mit einer Einmal-Einladung einladen, mit der die eingeladene Person ihren Zugang einrichtet; Einladungen MÜSSEN ablaufen und können erneut versendet werden.
 
-#### Scenario: Member invitation
-- **WHEN** an admin sends a portal invitation to a member
-- **THEN** the member receives an e-mail and can sign in with a one-time code from it
+#### Scenario: Einladung eines Mitglieds
+- **WHEN** ein Admin einem Mitglied eine Portal-Einladung sendet
+- **THEN** erhält das Mitglied eine E-Mail und kann sich daraus mit einem Einmalcode anmelden
 
-#### Scenario: Used invitation
-- **WHEN** an invitation link that was already used is opened again
-- **THEN** the system refuses it and offers the normal login
+#### Scenario: Benutzte Einladung
+- **WHEN** ein bereits benutzter Einladungslink erneut geöffnet wird
+- **THEN** lehnt das System ihn ab und bietet die normale Anmeldung an
 
-### Requirement: Authentication events are audited
-The system SHALL write logins, logouts, failed logins, lockouts, TOTP enrolment and recovery-code use to the audit log.
+### Requirement: Authentifizierungsereignisse werden auditiert
+Das System MUSS (SHALL) Anmeldungen, Abmeldungen, fehlgeschlagene Anmeldungen, Sperren, TOTP-Einrichtung und die Nutzung von Wiederherstellungscodes ins Audit-Protokoll schreiben.
 
-#### Scenario: Failed login logged
-- **WHEN** a login fails
-- **THEN** an audit event records the account, the hashed IP and the time, without the attempted password
+#### Scenario: Fehlgeschlagene Anmeldung protokolliert
+- **WHEN** eine Anmeldung fehlschlägt
+- **THEN** erfasst ein Audit-Ereignis das Konto, die gehashte IP und die Zeit, ohne das versuchte Passwort
 
-### Requirement: First-run setup
-The system SHALL let the first visitor of an empty installation create the club (organisation name) and the first admin account (name, e-mail, password of at least 12 characters) in one step, sign them in, and refuse any further setup once an organisation exists.
+### Requirement: Ersteinrichtung
+Das System MUSS (SHALL) der ersten Besucher:in einer leeren Installation erlauben, in einem Schritt den Verein (Name der Organisation) und das erste Admin-Konto (Name, E-Mail, Passwort mit mindestens 12 Zeichen) anzulegen, sie anzumelden und jede weitere Einrichtung abzulehnen, sobald eine Organisation existiert.
 
-#### Scenario: Setup creates club and admin
-- **WHEN** a visitor submits the setup form on an empty installation
-- **THEN** the organisation and an active admin account exist, the visitor is signed in and an audit event `organization.setup` is written
+#### Scenario: Einrichtung legt Verein und Admin an
+- **WHEN** eine Besucher:in das Einrichtungsformular auf einer leeren Installation absendet
+- **THEN** existieren die Organisation und ein aktives Admin-Konto, die Besucher:in ist angemeldet, und ein Audit-Ereignis `organization.setup` wird geschrieben
 
-#### Scenario: Setup only once
-- **WHEN** anyone calls the setup endpoint after an organisation exists
-- **THEN** the API answers 409 with a problem document and nothing is created
+#### Scenario: Einrichtung nur einmal
+- **WHEN** jemand den Einrichtungs-Endpunkt aufruft, nachdem eine Organisation existiert
+- **THEN** antwortet die API mit 409 und einem Problem-Dokument, und nichts wird angelegt
 
-### Requirement: TOTP replay protection
-The system SHALL accept each TOTP time step at most once per user, so an observed code cannot be reused.
+### Requirement: Schutz vor TOTP-Wiederverwendung
+Das System MUSS (SHALL) jeden TOTP-Zeitschritt höchstens einmal je Benutzer:in akzeptieren, damit ein beobachteter Code nicht wiederverwendet werden kann.
 
-#### Scenario: Same code twice
-- **WHEN** a code was used to sign in and the same code is entered again within its 30 seconds
-- **THEN** the second attempt is refused
+#### Scenario: Derselbe Code zweimal
+- **WHEN** ein Code zur Anmeldung benutzt wurde und derselbe Code innerhalb seiner 30 Sekunden erneut eingegeben wird
+- **THEN** wird der zweite Versuch abgelehnt
 
-### Requirement: Admin reset of a second factor
-The system SHALL let an admin (with step-up) reset another user's second factor, end that user's sessions and write an audit event; users reset their own factor through setup.
+### Requirement: Zurücksetzen eines zweiten Faktors durch einen Admin
+Das System MUSS (SHALL) einem Admin (mit erneuter Bestätigung (Step-up)) erlauben, den zweiten Faktor einer anderen Benutzer:in zurückzusetzen, deren Sitzungen zu beenden und ein Audit-Ereignis zu schreiben; Benutzer:innen setzen ihren eigenen Faktor über die Einrichtung zurück.
 
-#### Scenario: Lost phone
-- **WHEN** an admin resets the second factor of a treasurer who lost their phone
-- **THEN** the treasurer's sessions end and the next sign-in asks them to set up TOTP again
+#### Scenario: Verlorenes Handy
+- **WHEN** ein Admin den zweiten Faktor einer Kassenwart:in zurücksetzt, die ihr Handy verloren hat
+- **THEN** enden die Sitzungen der Kassenwart:in, und die nächste Anmeldung fordert sie auf, TOTP erneut einzurichten
 

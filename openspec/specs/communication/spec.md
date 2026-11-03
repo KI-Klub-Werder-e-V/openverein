@@ -1,125 +1,125 @@
 # communication Specification
 
 ## Purpose
-The communication capability covers bulk e-mail through the club's SMTP relay with templates, placeholders, attachments, a delivery log and suppression, and the letterhead with printable PDF letter batches split by preferred channel (B M27, M28). Items that B rates "should" or "could" are marked as such in the requirement name; everything else is MVP behaviour. Free serial letters and a layout editor are post-MVP (B P27) and not specified here.
+Die Capability communication umfasst Massen-E-Mails über das SMTP-Relay des Vereins mit Vorlagen, Platzhaltern, Anhängen, Zustellprotokoll und Sperrliste sowie den Briefkopf mit druckbaren PDF-Briefstapeln, aufgeteilt nach bevorzugtem Kanal (B M27, M28). Punkte, die B als „sollte“ oder „könnte“ bewertet, sind im Namen der Anforderung entsprechend gekennzeichnet; alles andere ist MVP-Verhalten. Freie Serienbriefe und ein Layout-Editor sind Post-MVP (B P27) und hier nicht spezifiziert.
 ## Requirements
-### Requirement: Recipient selection with exclusions
-The system SHALL take recipients from a saved view, groups or a hand-picked list and preview the count and the excluded persons with their reason (no e-mail, opted out, suppressed, former member).
+### Requirement: Empfängerauswahl mit Ausschlüssen
+Das System MUSS (SHALL) Empfänger:innen aus einer gespeicherten Ansicht, aus Gruppen oder aus einer handverlesenen Liste übernehmen und vorab die Anzahl sowie die ausgeschlossenen Personen mit Grund anzeigen (keine E-Mail, abgemeldet, gesperrt, ehemaliges Mitglied).
 
-#### Scenario: Exclusions listed
-- **WHEN** a mail to group "Senioren" includes a person without e-mail and one on the suppression list
-- **THEN** the preview lists both as excluded with their reasons
+#### Scenario: Ausschlüsse aufgelistet
+- **WHEN** eine E-Mail an die Gruppe "Senioren" eine Person ohne E-Mail und eine Person auf der Sperrliste umfasst
+- **THEN** listet die Vorschau beide als ausgeschlossen mit ihren Gründen auf
 
-### Requirement: Composer with permission-aware placeholders
-The system SHALL offer a rich-text editor with placeholders (for example `{{person.first_name}}`, `{{member.number}}`, `{{invoice.open_amount}}`, custom fields) and a live preview for any chosen recipient; placeholders SHALL resolve through the same field permissions as the UI, and templates SHALL render in a sandbox that cannot execute code.
+### Requirement: Editor mit berechtigungsbewussten Platzhaltern
+Das System MUSS (SHALL) einen Rich-Text-Editor mit Platzhaltern (zum Beispiel `{{person.first_name}}`, `{{member.number}}`, `{{invoice.open_amount}}`, benutzerdefinierte Felder) und eine Live-Vorschau für beliebig gewählte Empfänger:innen anbieten; Platzhalter MÜSSEN über dieselben Feldberechtigungen aufgelöst werden wie in der UI, und Vorlagen MÜSSEN in einer Sandbox gerendert werden, die keinen Code ausführen kann.
 
-#### Scenario: Restricted placeholder
-- **WHEN** a trainer without the IBAN right uses an IBAN placeholder
-- **THEN** the placeholder does not resolve to the IBAN
+#### Scenario: Eingeschränkter Platzhalter
+- **WHEN** ein:e Trainer:in ohne IBAN-Recht einen IBAN-Platzhalter verwendet
+- **THEN** wird der Platzhalter nicht zur IBAN aufgelöst
 
-#### Scenario: Preview per recipient
-- **WHEN** the sender picks a recipient in the preview
-- **THEN** the mail is shown with that recipient's values filled in
+#### Scenario: Vorschau je Empfänger:in
+- **WHEN** die absendende Person in der Vorschau eine:n Empfänger:in auswählt
+- **THEN** wird die E-Mail mit den Werten dieser Person angezeigt
 
-### Requirement: Templates and system templates
-The system SHALL keep versioned templates with categories and ship system templates for: application received, accepted and rejected; change request decided; resignation confirmed; pre-notification; dunning; portal invitation; sign-in code.
+### Requirement: Vorlagen und Systemvorlagen
+Das System MUSS (SHALL) versionierte Vorlagen mit Kategorien führen und Systemvorlagen mitliefern für: Antrag eingegangen, angenommen und abgelehnt; Änderungsantrag entschieden; Austritt bestätigt; Vorabankündigung; Mahnung; Portaleinladung; Anmeldecode.
 
-#### Scenario: System template used
-- **WHEN** an application is accepted
-- **THEN** the "application accepted" template is sent to the applicant
+#### Scenario: Systemvorlage verwendet
+- **WHEN** ein Antrag angenommen wird
+- **THEN** wird die Vorlage „Antrag angenommen“ an die antragstellende Person gesendet
 
-### Requirement: Attachments
-The system SHALL allow attachments up to 10 MB in total per mail and per-recipient generated PDFs (for example the recipient's own invoice).
+### Requirement: Anhänge
+Das System MUSS (SHALL) Anhänge bis insgesamt 10 MB pro E-Mail sowie je Empfänger:in erzeugte PDFs erlauben (zum Beispiel die eigene Rechnung der Empfänger:in).
 
-#### Scenario: Per-recipient invoice
-- **WHEN** a mail is sent with "attach own invoice"
-- **THEN** each recipient receives only their own invoice PDF
+#### Scenario: Rechnung je Empfänger:in
+- **WHEN** eine E-Mail mit „eigene Rechnung anhängen“ gesendet wird
+- **THEN** erhält jede:r Empfänger:in nur das PDF der eigenen Rechnung
 
-#### Scenario: Size limit
-- **WHEN** attachments exceed 10 MB in total
-- **THEN** the mail cannot be sent until attachments are reduced
+#### Scenario: Größenlimit
+- **WHEN** die Anhänge insgesamt 10 MB überschreiten
+- **THEN** kann die E-Mail erst gesendet werden, wenn die Anhänge verkleinert wurden
 
-### Requirement: SMTP sending
-The system SHALL send through the club's SMTP relay, optionally with sender addresses per purpose (finance, board, general), and offer a "test SMTP" action with SPF, DKIM and DMARC hints.
+### Requirement: SMTP-Versand
+Das System MUSS (SHALL) über das SMTP-Relay des Vereins senden, optional mit Absenderadressen je Zweck (Finanzen, Vorstand, Allgemein), und eine Aktion „SMTP testen“ mit Hinweisen zu SPF, DKIM und DMARC anbieten.
 
-#### Scenario: Test mail
-- **WHEN** an admin runs "test SMTP"
-- **THEN** a test mail is sent and the result with SPF / DKIM / DMARC hints is shown
+#### Scenario: Test-E-Mail
+- **WHEN** ein:e Admin „SMTP testen“ ausführt
+- **THEN** wird eine Test-E-Mail gesendet und das Ergebnis mit Hinweisen zu SPF / DKIM / DMARC angezeigt
 
-### Requirement: Throttled queue and delivery log
-The system SHALL queue mails with a configurable rate (messages per minute) and keep one delivery row per recipient with status `queued`, `accepted`, `bounced`, `failed` or `printed` and error text; each sent mail SHALL appear on the recipient's profile timeline.
+### Requirement: Gedrosselte Warteschlange und Zustellprotokoll
+Das System MUSS (SHALL) E-Mails mit einer konfigurierbaren Rate (Nachrichten pro Minute) in eine Warteschlange stellen und je Empfänger:in eine Zustellzeile mit Status `queued`, `accepted`, `bounced`, `failed` oder `printed` und Fehlertext führen; jede gesendete E-Mail MUSS in der Profil-Zeitleiste der Empfänger:in erscheinen.
 
-#### Scenario: Throttle
-- **WHEN** 600 mails are queued with a limit of 100 per minute
-- **THEN** sending takes at least 6 minutes and each recipient's delivery status is recorded
+#### Scenario: Drosselung
+- **WHEN** 600 E-Mails bei einem Limit von 100 pro Minute in die Warteschlange gestellt werden
+- **THEN** dauert der Versand mindestens 6 Minuten und der Zustellstatus jeder Empfänger:in wird erfasst
 
-### Requirement: Bounces and suppression
-The system SHALL log synchronous SMTP rejects per recipient, accept asynchronous bounces through a relay webhook adapter, let an admin mark an address as bounced by hand, and add hard-bounced addresses to the suppression list.
+### Requirement: Bounces und Sperrliste
+Das System MUSS (SHALL) synchrone SMTP-Ablehnungen je Empfänger:in protokollieren, asynchrone Bounces über einen Relay-Webhook-Adapter annehmen, Admins eine Adresse von Hand als gebounct markieren lassen und Adressen mit Hard Bounce auf die Sperrliste setzen.
 
-#### Scenario: Hard bounce
-- **WHEN** the relay webhook reports a hard bounce
-- **THEN** the delivery becomes `bounced` and the address is suppressed for later mails
+#### Scenario: Hard Bounce
+- **WHEN** der Relay-Webhook einen Hard Bounce meldet
+- **THEN** wird die Zustellung `bounced` und die Adresse für spätere E-Mails gesperrt
 
-### Requirement: Unsubscribe for non-mandatory mail
-The system SHALL add an unsubscribe link to non-mandatory categories (for example newsletter); mandatory club notices (general assembly invitation, invoices, pre-notifications) SHALL NOT be suppressible by unsubscribe, only by hard bounce.
+### Requirement: Abmeldung bei nicht verpflichtenden E-Mails
+Das System MUSS (SHALL) nicht verpflichtenden Kategorien (zum Beispiel Rundschreiben) einen Abmeldelink hinzufügen; verpflichtende Vereinsmitteilungen (Einladung zur Mitgliederversammlung, Rechnungen, Vorabankündigungen) DÜRFEN NICHT durch Abmeldung unterdrückt werden, nur durch Hard Bounce.
 
-#### Scenario: Unsubscribed member still gets invoice
-- **WHEN** a member who unsubscribed from the newsletter is sent an invoice
-- **THEN** the invoice mail is delivered
+#### Scenario: Abgemeldetes Mitglied erhält trotzdem Rechnung
+- **WHEN** an ein Mitglied, das sich vom Rundschreiben abgemeldet hat, eine Rechnung gesendet wird
+- **THEN** wird die Rechnungs-E-Mail zugestellt
 
-### Requirement: Letterhead
-The system SHALL keep one letterhead configuration (logo, sender line, address block for DIN 5008 window envelopes type A or B, footer with board members, register court and number, tax number and bank details) used by every generated document: invoice, cancellation, dunning letter, donation receipt, mandate form, pre-notification, membership confirmation and GDPR data sheet.
+### Requirement: Briefkopf
+Das System MUSS (SHALL) eine Briefkopf-Konfiguration führen (Logo, Absenderzeile, Adressblock für DIN-5008-Fensterumschläge Form A oder B, Fußzeile mit Vorstandsmitgliedern, Registergericht und -nummer, Steuernummer und Bankverbindung), die jedes erzeugte Dokument verwendet: Rechnung, Storno, Mahnschreiben, Spendenbescheinigung, Mandatsformular, Vorabankündigung, Mitgliedsbestätigung und DSGVO-Datenblatt.
 
-#### Scenario: Window envelope
-- **WHEN** an invoice is printed with DIN 5008 type B
-- **THEN** the recipient address sits in the type-B window position
+#### Scenario: Fensterumschlag
+- **WHEN** eine Rechnung mit DIN 5008 Form B gedruckt wird
+- **THEN** steht die Empfängeradresse an der Fensterposition von Form B
 
-### Requirement: Send documents by preferred channel
-The system SHALL split document recipients by preferred channel and show the split (N by e-mail, M as letters, K without a valid channel) before sending, and record for each document how and when it was sent.
+### Requirement: Dokumente über den bevorzugten Kanal senden
+Das System MUSS (SHALL) die Empfänger:innen von Dokumenten nach bevorzugtem Kanal aufteilen, die Aufteilung vor dem Versand anzeigen (N per E-Mail, M als Brief, K ohne gültigen Kanal) und für jedes Dokument festhalten, wie und wann es versendet wurde.
 
-#### Scenario: Channel split
-- **WHEN** 120 invoices are sent and 20 recipients prefer letters and 3 have no channel
-- **THEN** the dialog shows 97 by e-mail, 20 as letters and 3 without a valid channel
+#### Scenario: Kanalaufteilung
+- **WHEN** 120 Rechnungen versendet werden und 20 Empfänger:innen Briefe bevorzugen und 3 keinen Kanal haben
+- **THEN** zeigt der Dialog 97 per E-Mail, 20 als Brief und 3 ohne gültigen Kanal
 
-### Requirement: Printable letter batches
-The system SHALL merge letters into one PDF in postal-code order with blank pages added where needed for duplex printing, and store and list the batch with its documents.
+### Requirement: Druckbare Briefstapel
+Das System MUSS (SHALL) Briefe in Postleitzahl-Reihenfolge zu einem PDF zusammenführen, wo nötig Leerseiten für den Duplexdruck einfügen und den Stapel mit seinen Dokumenten speichern und auflisten.
 
-#### Scenario: Duplex padding
-- **WHEN** a batch contains a 3-page letter followed by another letter
-- **THEN** a blank page is inserted so that the next letter starts on a new sheet
+#### Scenario: Duplex-Auffüllung
+- **WHEN** ein Stapel einen dreiseitigen Brief gefolgt von einem weiteren Brief enthält
+- **THEN** wird eine Leerseite eingefügt, damit der nächste Brief auf einem neuen Blatt beginnt
 
-### Requirement: Fixed placeholder list
-The system SHALL offer placeholders only from a fixed list (first name, last name, full name, membership number, club name, and for invoice mails invoice number, amount, open amount, due date, dunning label) and leave unknown placeholders visible in the preview.
+### Requirement: Feste Platzhalterliste
+Das System MUSS (SHALL) Platzhalter nur aus einer festen Liste anbieten (Vorname, Nachname, vollständiger Name, Mitgliedsnummer, Vereinsname sowie bei Rechnungs-E-Mails Rechnungsnummer, Betrag, offener Betrag, Fälligkeitsdatum, Mahnbezeichnung) und unbekannte Platzhalter in der Vorschau sichtbar lassen.
 
-#### Scenario: Unknown placeholder
-- **WHEN** the text contains `{{iban}}`
-- **THEN** the preview and the mail show `{{iban}}` unchanged
+#### Scenario: Unbekannter Platzhalter
+- **WHEN** der Text `{{iban}}` enthält
+- **THEN** zeigen Vorschau und E-Mail `{{iban}}` unverändert
 
-### Requirement: Invoice mail by preferred channel
-The system SHALL send issued invoices of a list or a fee run by e-mail with each recipient's own PDF and return the invoices whose recipients prefer letters or have no deliverable address for printing.
+### Requirement: Rechnungs-E-Mail über den bevorzugten Kanal
+Das System MUSS (SHALL) ausgestellte Rechnungen einer Liste oder eines Beitragslaufs per E-Mail mit dem eigenen PDF jeder Empfänger:in senden und die Rechnungen, deren Empfänger:innen Briefe bevorzugen oder keine zustellbare Adresse haben, zum Drucken zurückgeben.
 
-#### Scenario: Letter preferred
-- **WHEN** invoices are sent and one recipient prefers letters
-- **THEN** that invoice is listed for printing and not mailed
+#### Scenario: Brief bevorzugt
+- **WHEN** Rechnungen versendet werden und eine Empfänger:in Briefe bevorzugt
+- **THEN** wird diese Rechnung zum Drucken aufgelistet und nicht per E-Mail gesendet
 
-### Requirement: Letters as one duplex-ready PDF
-The system SHALL merge the issued PDFs of invoices going out by letter into one PDF sorted by postal code, with every letter starting on a front page.
+### Requirement: Briefe als ein duplexfähiges PDF
+Das System MUSS (SHALL) die ausgestellten PDFs der per Brief versendeten Rechnungen zu einem nach Postleitzahl sortierten PDF zusammenführen, in dem jeder Brief auf einer Vorderseite beginnt.
 
-#### Scenario: Two letters, one page each
-- **WHEN** two one-page invoices are printed as letters
-- **THEN** the PDF has four pages, the second and fourth blank, and the lower postal code comes first
+#### Scenario: Zwei Briefe mit je einer Seite
+- **WHEN** zwei einseitige Rechnungen als Briefe gedruckt werden
+- **THEN** hat das PDF vier Seiten, die zweite und vierte sind leer, und die niedrigere Postleitzahl kommt zuerst
 
-### Requirement: General assembly with notice period and minutes
-The system SHALL invite all current members to a general assembly with its agenda only while the statutory notice period can be kept, record attendance and results per agenda item, and freeze the record when the assembly is closed.
+### Requirement: Mitgliederversammlung mit Einladungsfrist und Protokoll
+Das System MUSS (SHALL) alle aktuellen Mitglieder nur dann mit Tagesordnung zu einer Mitgliederversammlung einladen, solange die satzungsmäßige Einladungsfrist eingehalten werden kann, Anwesenheit und Ergebnisse je Tagesordnungspunkt erfassen und das Protokoll beim Schließen der Versammlung festschreiben.
 
-#### Scenario: Too late to invite
-- **WHEN** an assembly with a 14-day notice period is 7 days away
-- **THEN** the invitation is refused and names the last possible day
+#### Scenario: Zu spät für die Einladung
+- **WHEN** eine Versammlung mit 14 Tagen Einladungsfrist in 7 Tagen stattfindet
+- **THEN** wird die Einladung abgelehnt und der letztmögliche Tag genannt
 
-### Requirement: Board meetings
-The system SHALL run board meetings like general assemblies but invite and count only the members of the chosen group.
+### Requirement: Vorstandssitzungen
+Das System MUSS (SHALL) Vorstandssitzungen wie Mitgliederversammlungen durchführen, aber nur die Mitglieder der gewählten Gruppe einladen und zählen.
 
-#### Scenario: Invitation
-- **WHEN** a board meeting for the group "Vorstand" is invited
-- **THEN** only members of that group receive the invitation
+#### Scenario: Einladung
+- **WHEN** zu einer Vorstandssitzung für die Gruppe "Vorstand" eingeladen wird
+- **THEN** erhalten nur Mitglieder dieser Gruppe die Einladung
 

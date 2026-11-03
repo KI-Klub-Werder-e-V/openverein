@@ -67,7 +67,7 @@ export function DemoStart({ resetHours }: { resetHours: number | null }) {
         <h2 id="demo-agent-h">KI-Agent verbinden</h2>
         <p>Claude, ChatGPT oder ein Skript sehen dann genau, was Du nach der Anmeldung siehst.</p>
         <CopyLine label="claude.ai oder ChatGPT: Adresse für einen eigenen Connector" text={`${origin}/mcp`} />
-        <CopyLine label="Claude Code: das Plugin installieren" text={`/plugin marketplace add krautdawg/openverein\n/plugin install openverein@openverein`} />
+        <CopyLine label="Claude Code: das Plugin installieren" text={`/plugin marketplace add KI-Klub-Werder-e-V/openverein\n/plugin install openverein@openverein`} />
         <CopyLine label="Adresse des Vereins, wenn das Plugin danach fragt (club_url)" text={origin} />
         <CopyLine label="Terminal: die Kommandozeile ov laden (Token unter Agenten)" text={`curl -fsSLO ${origin}/ov.mjs`} />
       </section>
@@ -75,7 +75,7 @@ export function DemoStart({ resetHours }: { resetHours: number | null }) {
       <p className="demo-note">
         Alle Personen, Zahlen und Vorgänge hier sind erfunden.{' '}
         {resetHours ? `Die Demo fängt ${resetHours === 1 ? 'jede Stunde' : `alle ${resetHours} Stunden`} von vorn an.` : 'Gib keine echten Daten ein.'}{' '}
-        <a href="https://github.com/krautdawg/openverein">Quellcode auf GitHub</a>
+        <a href="https://github.com/KI-Klub-Werder-e-V/openverein">Quellcode auf GitHub</a>
       </p>
     </AuthLayout>
   );

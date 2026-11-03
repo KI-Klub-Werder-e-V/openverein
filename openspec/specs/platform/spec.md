@@ -1,221 +1,221 @@
 # platform Specification
 
 ## Purpose
-The platform capability covers the app shell, the German-first UI that addresses users with "Du", accessibility at WCAG 2.2 AA, the fixed dashboard (B M40), the background job tray (B M41), the self-ticking first-run checklist, the public demo mode and self-hosted operations (B M42), and mobile builds that wrap the web build with Capacitor. Items that B rates "should" or "could" are marked as such in the requirement name; everything else is MVP behaviour, including the demo mode.
+Die Capability platform umfasst die App-Shell, die deutschsprachige Oberfläche, die Nutzer:innen mit „Du“ anspricht, Barrierefreiheit nach WCAG 2.2 AA, das feste Dashboard (B M40), die Hintergrund-Job-Leiste (B M41), die sich selbst abhakende Checkliste für die Ersteinrichtung, den öffentlichen Demo-Modus und den Selbstbetrieb (B M42) sowie mobile Builds, die den Web-Build mit Capacitor verpacken. Punkte, die B mit „sollte“ oder „könnte“ bewertet, sind im Namen der Anforderung entsprechend gekennzeichnet; alles andere ist MVP-Verhalten, einschließlich des Demo-Modus.
 ## Requirements
-### Requirement: Single app shell on the public API
-The system SHALL serve one web application with an admin route tree and a separate `/portal` route tree, both built on the same public REST API, with a header that holds global search, the job tray and the user menu.
+### Requirement: Eine App-Shell auf der öffentlichen API
+Das System MUSS (SHALL) eine einzige Webanwendung mit einem Admin-Routenbaum und einem getrennten `/portal`-Routenbaum ausliefern, beide auf derselben öffentlichen REST-API aufgebaut, mit einer Kopfzeile, die globale Suche, Job-Leiste und Benutzermenü enthält.
 
-#### Scenario: Portal and admin share the API
-- **WHEN** an admin action is performed in the UI
-- **THEN** it is executed through a documented `/api/v1` endpoint and no private UI-only endpoint exists
+#### Scenario: Portal und Admin teilen sich die API
+- **WHEN** in der Oberfläche eine Admin-Aktion ausgeführt wird
+- **THEN** wird sie über einen dokumentierten `/api/v1`-Endpunkt ausgeführt, und es gibt keinen privaten, nur für die Oberfläche bestimmten Endpunkt
 
-### Requirement: German-first UI addressing users with "Du"
-The system SHALL ship German as the default locale, address users with the informal "Du" in all UI text, mails and system messages, and keep every UI string behind an i18n key so that further locales can be added without code changes.
+### Requirement: Deutschsprachige Oberfläche mit „Du“-Ansprache
+Das System MUSS (SHALL) Deutsch als Standardsprache ausliefern, Nutzer:innen in allen Oberflächentexten, E-Mails und Systemmeldungen mit dem informellen „Du“ ansprechen und jeden Oberflächentext hinter einem i18n-Schlüssel führen, sodass weitere Sprachen ohne Codeänderungen ergänzt werden können.
 
-#### Scenario: Informal address
-- **WHEN** a user opens any screen or receives a system mail
-- **THEN** the text addresses them as "Du" and never as "Sie"
+#### Scenario: Informelle Ansprache
+- **WHEN** eine Nutzer:in einen beliebigen Bildschirm öffnet oder eine System-E-Mail erhält
+- **THEN** spricht der Text sie mit „Du“ und niemals mit „Sie“ an
 
-#### Scenario: No hard-coded strings
-- **WHEN** the CI string check runs
-- **THEN** it fails on any user-visible string that is not behind an i18n key
+#### Scenario: Keine fest codierten Texte
+- **WHEN** die Textprüfung im CI läuft
+- **THEN** schlägt sie bei jedem sichtbaren Text fehl, der nicht hinter einem i18n-Schlüssel steht
 
-### Requirement: Accessibility WCAG 2.2 AA
-The system SHALL meet WCAG 2.2 AA in admin UI, portal and public forms: every action is keyboard-operable (including table column picking and bulk selection), focus is visible and not obscured, text contrast is at least 4.5:1, body text is at least 14 px, form errors are announced to screen readers, and pointer targets are at least 24 by 24 px; CI SHALL run automated axe-core checks on every route and fail on any serious violation.
+### Requirement: Barrierefreiheit nach WCAG 2.2 AA
+Das System MUSS (SHALL) in Admin-Oberfläche, Portal und öffentlichen Formularen WCAG 2.2 AA erfüllen: Jede Aktion ist per Tastatur bedienbar (auch Spaltenauswahl und Mehrfachauswahl), der Fokus ist sichtbar und unverdeckt, Textkontrast mindestens 4,5:1, Fließtext mindestens 14 px, Formularfehler werden Screenreadern angesagt, Zielflächen mindestens 24 × 24 px; das CI MUSS auf jeder Route automatisierte axe-core-Prüfungen ausführen und bei jedem schweren Verstoß fehlschlagen.
 
-#### Scenario: Keyboard-only column picking
-- **WHEN** a user adds, removes and reorders list columns with the keyboard only
-- **THEN** every step works without drag-and-drop
+#### Scenario: Spaltenauswahl nur per Tastatur
+- **WHEN** eine Nutzer:in Listenspalten nur mit der Tastatur hinzufügt, entfernt und umsortiert
+- **THEN** funktioniert jeder Schritt ohne Drag-and-drop
 
-#### Scenario: CI accessibility gate
-- **WHEN** a route has a serious axe-core violation
-- **THEN** the CI pipeline fails
+#### Scenario: Barrierefreiheits-Gate im CI
+- **WHEN** eine Route einen schweren axe-core-Verstoß aufweist
+- **THEN** schlägt die CI-Pipeline fehl
 
-### Requirement: Fixed dashboard
-The system SHALL show a start page with fixed tiles, each only if the user has read access to its data: account balances, members (active count, joins and exits this year, 24-month trend), open applications, pending change requests, reconciliation inbox count, open receivables total and overdue count, next planned fee run and collection date, expiring mandates, failed deliveries and admin notes; every tile SHALL link to the filtered list behind it, and the page SHALL load in under 1 second for 2,000 members. No vendor news or feature-request widget is shown.
+### Requirement: Festes Dashboard
+Das System MUSS (SHALL) eine Startseite mit festen Kacheln zeigen, jede nur bei Leserecht auf ihre Daten: Kontostände, Mitglieder (Anzahl aktiv, Ein- und Austritte im Jahr, 24-Monats-Trend), offene Anträge, ausstehende Änderungsanträge, Abgleich-Eingang, offene Forderungen und Anzahl überfällig, nächster Beitragslauf und Einzugstermin, ablaufende Mandate, fehlgeschlagene Zustellungen, Admin-Notizen; jede Kachel MUSS zur gefilterten Liste verlinken, die Seite bei 2.000 Mitgliedern in unter 1 Sekunde laden. Keine Anbieter-News, kein Feature-Wunsch-Widget.
 
-#### Scenario: Tile hidden without access
-- **WHEN** a trainer without finance access opens the dashboard
-- **THEN** the account-balance and receivables tiles are not shown
+#### Scenario: Kachel ohne Zugriff ausgeblendet
+- **WHEN** eine Trainer:in ohne Finanzzugriff das Dashboard öffnet
+- **THEN** werden die Kacheln für Kontostände und Forderungen nicht angezeigt
 
-#### Scenario: Tile links to list
-- **WHEN** a user clicks the "overdue receivables" tile
-- **THEN** the open-items list opens filtered to overdue items
+#### Scenario: Kachel verlinkt auf Liste
+- **WHEN** eine Nutzer:in auf die Kachel „überfällige Forderungen“ klickt
+- **THEN** öffnet sich die Offene-Posten-Liste, gefiltert auf überfällige Posten
 
-### Requirement: Background job tray
-The system SHALL list the user's background jobs in a header tray with kind, start time, progress percentage, state (`queued`, `running`, `done`, `failed`) and result link; progress SHALL update live via server-sent events with polling as fallback; failed jobs SHALL show the error in plain German and offer "retry" where the job is idempotent; admins SHALL see all jobs of the organisation.
+### Requirement: Hintergrund-Job-Leiste
+Das System MUSS (SHALL) die Hintergrund-Jobs der Nutzer:in in einer Leiste in der Kopfzeile mit Art, Startzeit, Fortschritt in Prozent, Zustand (`queued`, `running`, `done`, `failed`) und Ergebnislink auflisten; der Fortschritt MUSS live per Server-Sent Events aktualisiert werden, mit Polling als Rückfall; fehlgeschlagene Jobs MÜSSEN den Fehler in verständlichem Deutsch zeigen und „Erneut versuchen“ anbieten, wo der Job idempotent ist; Admins MÜSSEN alle Jobs der Organisation sehen.
 
-#### Scenario: Live progress
-- **WHEN** a fee run of 1,200 members runs as a job
-- **THEN** the tray shows its progress rising without a page reload
+#### Scenario: Live-Fortschritt
+- **WHEN** ein Beitragslauf über 1.200 Mitglieder als Job läuft
+- **THEN** zeigt die Leiste den steigenden Fortschritt ohne Neuladen der Seite
 
-#### Scenario: Failed job
-- **WHEN** an export job fails
-- **THEN** the tray shows the state `failed`, a German error message and a retry button
+#### Scenario: Fehlgeschlagener Job
+- **WHEN** ein Export-Job fehlschlägt
+- **THEN** zeigt die Leiste den Zustand `failed`, eine deutsche Fehlermeldung und eine Schaltfläche zum erneuten Versuchen
 
-### Requirement: Self-ticking first-run checklist
-The system SHALL show a first-run checklist whose items tick themselves off from real data: organisation master data and letterhead, SMTP test, chart of accounts, bank accounts and creditor ID, groups and fee plans, members imported or entered, application form published, first fee-run preview, first statement imported, backup target configured. A club-type preset (sport, culture, social, Förderverein) SHALL only preselect groups, fee-plan templates and accounts, without marketing questions.
+### Requirement: Sich selbst abhakende Checkliste für die Ersteinrichtung
+Das System MUSS (SHALL) eine Ersteinrichtungs-Checkliste zeigen, die sich aus echten Daten selbst abhakt: Stammdaten und Briefkopf, SMTP-Test, Kontenplan, Bankkonten und Gläubiger-ID, Gruppen und Beitragspläne, Mitglieder importiert/erfasst, Antragsformular online, erste Beitragslauf-Vorschau, erster Kontoauszug importiert, Backup-Ziel gesetzt. Eine Vereinsart-Vorlage (Sport, Kultur, Soziales, Förderverein) MUSS nur Gruppen, Beitragsplan-Vorlagen und Konten vorauswählen, ohne Marketingfragen.
 
-#### Scenario: Item ticks itself
-- **WHEN** the first bank statement is imported
-- **THEN** the checklist item "first statement imported" shows as done without user action
+#### Scenario: Punkt hakt sich selbst ab
+- **WHEN** der erste Kontoauszug importiert wird
+- **THEN** wird der Checklistenpunkt „erster Kontoauszug importiert“ ohne Zutun der Nutzer:in als erledigt angezeigt
 
-### Requirement: Demo mode
-The system SHALL provide a demo club (about 150 members, 3 divisions, households, one year of bookings, mandates with test IBANs) loaded by `ovctl seed demo`, refuse to load it into an instance that holds real data, show a permanent banner marking all data as demo data on every page and in every generated document, and support a public demo instance that resets to the seed state on a schedule and on command.
+### Requirement: Demo-Modus
+Das System MUSS (SHALL) einen Demo-Verein bereitstellen (rund 150 Mitglieder, 3 Abteilungen, Haushalte, ein Jahr Buchungen, Mandate mit Test-IBANs), der per `ovctl seed demo` geladen wird, das Laden in eine Instanz mit echten Daten verweigern, auf jeder Seite und in jedem erzeugten Dokument ein dauerhaftes Banner zeigen, das alle Daten als Demodaten kennzeichnet, und eine öffentliche Demo-Instanz unterstützen, die planmäßig und auf Befehl auf den Ausgangszustand zurückgesetzt wird.
 
-#### Scenario: Demo refused on real data
-- **WHEN** an operator runs `ovctl seed demo` on an instance with real members
-- **THEN** the command aborts without changing data
+#### Scenario: Demo bei echten Daten verweigert
+- **WHEN** eine Betreiber:in `ovctl seed demo` auf einer Instanz mit echten Mitgliedern ausführt
+- **THEN** bricht der Befehl ab, ohne Daten zu ändern
 
-#### Scenario: Demo clearly marked
-- **WHEN** a visitor opens any page or downloads a PDF on a demo instance
-- **THEN** a visible banner or watermark states that the data is fictitious demo data
+#### Scenario: Demo klar gekennzeichnet
+- **WHEN** eine Besucher:in auf einer Demo-Instanz eine beliebige Seite öffnet oder ein PDF herunterlädt
+- **THEN** weist ein sichtbares Banner oder Wasserzeichen darauf hin, dass es sich um fiktive Demodaten handelt
 
-#### Scenario: Public demo reset
-- **WHEN** the scheduled reset runs on the public demo
-- **THEN** all visitor changes are discarded and the seed state is restored
+#### Scenario: Zurücksetzen der öffentlichen Demo
+- **WHEN** das geplante Zurücksetzen auf der öffentlichen Demo läuft
+- **THEN** werden alle Änderungen der Besucher:innen verworfen und der Ausgangszustand wiederhergestellt
 
-### Requirement: Mobile builds via Capacitor
-The system SHALL produce Android and iOS builds by wrapping the same web build with Capacitor, with no separate native code path for features; the wrapped app SHALL use the same API, authentication and permission rules as the web app.
+### Requirement: Mobile Builds über Capacitor
+Das System MUSS (SHALL) Android- und iOS-Builds erzeugen, indem es denselben Web-Build mit Capacitor verpackt, ohne getrennten nativen Codepfad für Funktionen; die verpackte App MUSS dieselben API-, Authentifizierungs- und Berechtigungsregeln wie die Web-App verwenden.
 
-#### Scenario: Same build
-- **WHEN** a release is built
-- **THEN** the mobile packages contain the same web bundle version as the web release
+#### Scenario: Derselbe Build
+- **WHEN** ein Release gebaut wird
+- **THEN** enthalten die mobilen Pakete dieselbe Web-Bundle-Version wie das Web-Release
 
-### Requirement: Installable PWA
-The system SHALL be installable as a PWA that works on a 390 px wide phone and shows a clear offline state; the MVP SHALL NOT accept offline writes.
+### Requirement: Installierbare PWA
+Das System MUSS (SHALL) als PWA installierbar sein, die auf einem 390 px breiten Smartphone funktioniert und einen klaren Offline-Zustand zeigt; das MVP DARF Schreibvorgänge im Offline-Betrieb NICHT annehmen.
 
-#### Scenario: Offline state
-- **WHEN** the device loses connectivity
-- **THEN** the app shell stays visible with an "offline" notice and write actions are disabled
+#### Scenario: Offline-Zustand
+- **WHEN** das Gerät die Verbindung verliert
+- **THEN** bleibt die App-Shell mit einem „Offline“-Hinweis sichtbar, und schreibende Aktionen sind deaktiviert
 
-### Requirement: Business time zone
-The system SHALL evaluate every date-driven rule (status changes, mandate expiry, lock-date checks, due dates, retention) in the organisation's business time zone, default `Europe/Berlin`, never in the server's UTC clock.
+### Requirement: Geschäftszeitzone
+Das System MUSS (SHALL) jede datumsabhängige Regel (Statuswechsel, Mandatsablauf, Prüfungen gegen das Sperrdatum, Fälligkeiten, Aufbewahrung) in der Geschäftszeitzone der Organisation auswerten, standardmäßig `Europe/Berlin`, niemals nach der UTC-Uhr des Servers.
 
-#### Scenario: Midnight crossing
-- **WHEN** a job runs at 23:30 UTC on 31 December, which is already 1 January in Europe/Berlin
-- **THEN** it treats today as 1 January and moves a `future` member whose join date is 1 January to `active`
+#### Scenario: Mitternachtsübergang
+- **WHEN** ein Job am 31. Dezember um 23:30 UTC läuft, was in Europe/Berlin bereits der 1. Januar ist
+- **THEN** behandelt er den heutigen Tag als 1. Januar und setzt ein `future`-Mitglied mit Eintrittsdatum 1. Januar auf `active`
 
-### Requirement: Self-hosted operations
-The system SHALL ship `ovctl` with `install` (domain, admin e-mail, SMTP, backup target), `backup` and `restore` (encrypted, off-site), `update` (verifies the image signature, takes a backup first, runs forward-only migrations, and on failure stops the stack and offers restore of the pre-update snapshot, never starting the old image on a migrated schema), `doctor` (disk, certificates, backup age, restore drill, master-key check, SMTP) and `export-all`.
+### Requirement: Selbstbetrieb
+Das System MUSS (SHALL) `ovctl` ausliefern mit `install` (Domain, Admin-E-Mail, SMTP, Backup-Ziel), `backup` und `restore` (verschlüsselt, extern), `update` (prüft die Image-Signatur, sichert zuerst, migriert nur vorwärts, stoppt bei Fehler den Stack, bietet die Wiederherstellung des Stands vor dem Update an und startet nie das alte Image auf migriertem Schema), `doctor` (Speicher, Zertifikate, Backup-Alter, Restore-Probe, Master-Key, SMTP) und `export-all`.
 
-#### Scenario: Failed update
-- **WHEN** a migration fails during `ovctl update`
-- **THEN** the stack is stopped and the operator is offered `ovctl restore` of the pre-update backup
+#### Scenario: Fehlgeschlagenes Update
+- **WHEN** während `ovctl update` eine Migration fehlschlägt
+- **THEN** wird der Stack gestoppt, und der Betreiber:in wird `ovctl restore` des Backups vor dem Update angeboten
 
-#### Scenario: Unsigned image refused
-- **WHEN** `ovctl update` finds an image whose signature does not verify
-- **THEN** the update aborts before any migration runs
+#### Scenario: Unsigniertes Image verweigert
+- **WHEN** `ovctl update` ein Image findet, dessen Signatur sich nicht prüfen lässt
+- **THEN** bricht das Update ab, bevor eine Migration läuft
 
-### Requirement: No vendor-serving features
-The system SHALL NOT include product analytics, session recording, vendor error reporting, third-party captchas, vendor news, feature-request voting, licence or seat limits, or externally loaded fonts and scripts.
+### Requirement: Keine Funktionen im Interesse des Anbieters
+Das System DARF Produktanalysen, Sitzungsaufzeichnung, Fehlerberichte an den Anbieter, Captchas von Drittanbietern, Anbieter-News, Abstimmungen über Feature-Wünsche, Lizenz- oder Platzbeschränkungen sowie extern geladene Schriften und Skripte NICHT (SHALL NOT) enthalten.
 
-#### Scenario: No third-party requests
-- **WHEN** a browser loads any OpenVerein page with default settings
-- **THEN** no request leaves the club's own origin
+#### Scenario: Keine Anfragen an Dritte
+- **WHEN** ein Browser eine beliebige OpenVerein-Seite mit Standardeinstellungen lädt
+- **THEN** verlässt keine Anfrage den eigenen Origin des Vereins
 
-### Requirement: Command palette
-The system SHALL open a command palette with Ctrl+K (Cmd+K on macOS) from every admin page that lists every navigation target and global action, filters as the user types, and runs the highlighted entry with Enter; modules SHALL be able to add search results (for example members) to it.
+### Requirement: Befehlspalette
+Das System MUSS (SHALL) auf jeder Admin-Seite mit Strg+K (Cmd+K unter macOS) eine Befehlspalette öffnen, die jedes Navigationsziel und jede globale Aktion auflistet, beim Tippen filtert und den markierten Eintrag mit Enter ausführt; Module MÜSSEN ihr Suchergebnisse (zum Beispiel Mitglieder) hinzufügen können.
 
-#### Scenario: Jump by keyboard
-- **WHEN** a signed-in user presses Ctrl+K, types "einst" and presses Enter
-- **THEN** the settings page opens without using the mouse
+#### Scenario: Sprung per Tastatur
+- **WHEN** eine angemeldete Nutzer:in Strg+K drückt, „einst“ tippt und Enter drückt
+- **THEN** öffnet sich die Einstellungsseite, ohne die Maus zu benutzen
 
-### Requirement: Side sheets and inline editing instead of modal stacks
-The system SHALL edit single values in place (click or Enter to edit, Enter to save, Escape to cancel) and open record details in a side sheet over the current list; it SHALL NOT open a modal from within another modal.
+### Requirement: Seitenpanels und Inline-Bearbeitung statt gestapelter Dialoge
+Das System MUSS (SHALL) Einzelwerte direkt an Ort und Stelle bearbeiten (Klick oder Enter zum Bearbeiten, Enter zum Speichern, Escape zum Abbrechen) und Datensatzdetails in einem Seitenpanel über der aktuellen Liste öffnen; es DARF NICHT einen Dialog aus einem anderen Dialog heraus öffnen.
 
-#### Scenario: Inline rename
-- **WHEN** an admin clicks the club name in the settings, types a new name and presses Enter
-- **THEN** the name is saved through the API, the side rail shows the new name and the change is audited
+#### Scenario: Inline umbenennen
+- **WHEN** eine Admin in den Einstellungen auf den Vereinsnamen klickt, einen neuen Namen tippt und Enter drückt
+- **THEN** wird der Name über die API gespeichert, die Seitenleiste zeigt den neuen Namen, und die Änderung wird im Audit-Protokoll erfasst
 
-### Requirement: Public demo safety
-The system SHALL, in demo mode, refuse changes to user accounts, roles, API keys, file uploads and mail-server settings, and SHALL deliver no e-mail outside the server.
+### Requirement: Sicherheit der öffentlichen Demo
+Das System MUSS (SHALL) im Demo-Modus Änderungen an Benutzerkonten, Rollen, API-Schlüsseln, Datei-Uploads und Mailserver-Einstellungen verweigern und DARF keine E-Mail außerhalb des Servers zustellen.
 
-#### Scenario: Visitor tries to lock others out
-- **WHEN** a visitor on the public demo tries to create a user or an API key
-- **THEN** the request is refused with a notice that this is locked in the demo
+#### Scenario: Besucher:in versucht, andere auszusperren
+- **WHEN** eine Besucher:in auf der öffentlichen Demo versucht, eine Benutzer:in oder einen API-Schlüssel anzulegen
+- **THEN** wird die Anfrage mit dem Hinweis verweigert, dass dies in der Demo gesperrt ist
 
-### Requirement: Long operations run as jobs
-The system SHALL run long operations (starting with the full export) as background jobs that return at once, report progress, survive a closed tab, and run with the starting user's current permissions.
+### Requirement: Lange Vorgänge laufen als Jobs
+Das System MUSS (SHALL) lange Vorgänge (beginnend mit dem Vollexport) als Hintergrund-Jobs ausführen, die sofort zurückkehren, ihren Fortschritt melden, ein geschlossenes Tab überstehen und mit den aktuellen Berechtigungen der startenden Nutzer:in laufen.
 
-#### Scenario: Export as a job
-- **WHEN** an admin starts a full export
-- **THEN** the API answers 202 with a queued job, the worker builds the export, and the job ends as done with the export file
+#### Scenario: Export als Job
+- **WHEN** eine Admin einen Vollexport startet
+- **THEN** antwortet die API mit 202 und einem Job in der Warteschlange, der Worker erstellt den Export, und der Job endet als erledigt mit der Exportdatei
 
-#### Scenario: Permission revoked before the job runs
-- **WHEN** the admin role is removed from the starting user before the worker picks up the job
-- **THEN** the job fails with a message that the permission is missing, and no export is created
+#### Scenario: Berechtigung vor dem Joblauf entzogen
+- **WHEN** der startenden Nutzer:in die Admin-Rolle entzogen wird, bevor der Worker den Job übernimmt
+- **THEN** schlägt der Job mit der Meldung fehl, dass die Berechtigung fehlt, und es wird kein Export erstellt
 
-#### Scenario: One at a time
-- **WHEN** a full export job is queued or running and another is started
-- **THEN** the second request is refused with 409
+#### Scenario: Einer nach dem anderen
+- **WHEN** ein Vollexport-Job wartet oder läuft und ein weiterer gestartet wird
+- **THEN** wird die zweite Anfrage mit 409 verweigert
 
-### Requirement: Accessibility is checked in CI
-The system SHALL fail CI when axe-core reports a serious or critical WCAG 2.2 A/AA finding on any admin route, the sign-in pages or an open side sheet.
+### Requirement: Barrierefreiheit wird im CI geprüft
+Das System MUSS (SHALL) das CI fehlschlagen lassen, wenn axe-core auf einer Admin-Route, den Anmeldeseiten oder einem geöffneten Seitenpanel einen schweren oder kritischen Befund nach WCAG 2.2 A/AA meldet.
 
-#### Scenario: Regression caught
-- **WHEN** a change introduces text below 4.5:1 contrast on an admin route
-- **THEN** the accessibility e2e spec fails and names the route and element
+#### Scenario: Regression erkannt
+- **WHEN** eine Änderung auf einer Admin-Route Text mit einem Kontrast unter 4,5:1 einführt
+- **THEN** schlägt die Barrierefreiheits-E2E-Spec fehl und nennt Route und Element
 
-### Requirement: Permission attack suite in CI
-The system SHALL run, in CI, a test that calls every API route as restricted roles with out-of-scope ids and fails if any response contains out-of-scope personal data or a restricted IBAN, or if any write succeeds.
+### Requirement: Berechtigungs-Angriffssuite im CI
+Das System MUSS (SHALL) im CI einen Test ausführen, der jede API-Route mit eingeschränkten Rollen und IDs außerhalb ihres Geltungsbereichs aufruft und fehlschlägt, wenn eine Antwort personenbezogene Daten außerhalb des Geltungsbereichs oder eine geschützte IBAN enthält oder ein Schreibvorgang gelingt.
 
-#### Scenario: New route without a scope check
-- **WHEN** a new GET route returns a member by id without the division scope check
-- **THEN** the attack suite fails and names the route
+#### Scenario: Neue Route ohne Geltungsbereichsprüfung
+- **WHEN** eine neue GET-Route ein Mitglied per ID ohne die Prüfung des Abteilungs-Geltungsbereichs zurückgibt
+- **THEN** schlägt die Angriffssuite fehl und nennt die Route
 
-### Requirement: One command to back up and restore
-The system SHALL provide `ovctl backup` and `ovctl restore`, where restore verifies the backup's checksums, first backs up the current state, and keeps erasures made after the backup.
+### Requirement: Ein Befehl für Sicherung und Wiederherstellung
+Das System MUSS (SHALL) `ovctl backup` und `ovctl restore` bereitstellen, wobei die Wiederherstellung die Prüfsummen des Backups prüft, zuerst den aktuellen Stand sichert und Löschungen nach dem Backup beibehält.
 
-#### Scenario: Restore an older backup
-- **WHEN** an operator restores a backup taken before a member was added
-- **THEN** the member is gone, the erasure log still holds the newer entries, and the server answers its health check
+#### Scenario: Älteres Backup wiederherstellen
+- **WHEN** eine Betreiber:in ein Backup wiederherstellt, das vor dem Anlegen eines Mitglieds erstellt wurde
+- **THEN** ist das Mitglied verschwunden, das Löschprotokoll enthält weiterhin die neueren Einträge, und der Server beantwortet seinen Health-Check
 
-### Requirement: Wrong data key stops the server
-The system SHALL refuse to start when DATA_KEY differs from the key the database was first started with.
+### Requirement: Falscher Datenschlüssel stoppt den Server
+Das System MUSS (SHALL) den Start verweigern, wenn DATA_KEY von dem Schlüssel abweicht, mit dem die Datenbank zum ersten Mal gestartet wurde.
 
-#### Scenario: Restore on a new server with a fresh key
-- **WHEN** a backup is restored on a server whose deploy/.env has a newly generated DATA_KEY
-- **THEN** the app does not start and says that DATA_KEY does not match this database
+#### Scenario: Wiederherstellung auf neuem Server mit frischem Schlüssel
+- **WHEN** ein Backup auf einem Server wiederhergestellt wird, dessen deploy/.env einen neu erzeugten DATA_KEY enthält
+- **THEN** startet die App nicht und meldet, dass DATA_KEY nicht zu dieser Datenbank passt
 
-### Requirement: Managed hosting
-With managed hosting switched on, the system SHALL create clubs only through the operator API, reach each club under its own host name, and keep every club's data, sign-ins and portal codes inside that club.
+### Requirement: Managed Hosting
+Bei eingeschaltetem Managed Hosting MUSS (SHALL) das System Vereine nur über die Betreiber-API anlegen, jeden Verein unter seinem eigenen Hostnamen erreichbar machen und die Daten, Anmeldungen und Portalcodes jedes Vereins innerhalb dieses Vereins halten.
 
-#### Scenario: Portal by host name
-- **WHEN** a member of club B asks for a portal code under club A's host name
-- **THEN** no code is issued in club A
+#### Scenario: Portal nach Hostname
+- **WHEN** ein Mitglied von Verein B unter dem Hostnamen von Verein A einen Portalcode anfordert
+- **THEN** wird in Verein A kein Code ausgestellt
 
-#### Scenario: Access on another club's address
-- **WHEN** the admin of club A signs in under club B's host name
-- **THEN** the sign-in fails
+#### Scenario: Zugang unter der Adresse eines anderen Vereins
+- **WHEN** die Admin von Verein A sich unter dem Hostnamen von Verein B anmeldet
+- **THEN** schlägt die Anmeldung fehl
 
-### Requirement: Own overview layout
-The system SHALL let every access order and hide the overview sections and keep that layout for the access.
+### Requirement: Eigenes Übersichtslayout
+Das System MUSS (SHALL) jedem Zugang erlauben, die Abschnitte der Übersicht zu ordnen und auszublenden, und dieses Layout für den Zugang speichern.
 
-#### Scenario: Hide first steps
-- **WHEN** a treasurer hides "Erste Schritte"
-- **THEN** their overview no longer shows it and other accesses are unaffected
+#### Scenario: Erste Schritte ausblenden
+- **WHEN** eine Kassenwart:in „Erste Schritte“ ausblendet
+- **THEN** zeigt ihre Übersicht diesen Abschnitt nicht mehr, und andere Zugänge sind nicht betroffen
 
-### Requirement: Sign-in through the club's identity provider
-The system SHALL sign in through the club's OIDC provider only accesses that exist and are active, matched by a verified e-mail address, and SHALL still require the second factor of accesses that have one.
+### Requirement: Anmeldung über den Identitätsanbieter des Vereins
+Das System MUSS (SHALL) über den OIDC-Anbieter des Vereins nur Zugänge anmelden, die existieren und aktiv sind, zugeordnet über eine bestätigte E-Mail-Adresse, und MUSS bei Zugängen mit zweitem Faktor diesen weiterhin verlangen.
 
-#### Scenario: Unknown address
-- **WHEN** the provider confirms an address that has no access in the club
-- **THEN** no session is created and the sign-in page explains why
+#### Scenario: Unbekannte Adresse
+- **WHEN** der Anbieter eine Adresse bestätigt, die im Verein keinen Zugang hat
+- **THEN** wird keine Sitzung erstellt, und die Anmeldeseite erklärt den Grund
 
-#### Scenario: Access with second factor
-- **WHEN** an access with TOTP signs in through the provider
-- **THEN** the sign-in continues with the code step
+#### Scenario: Zugang mit zweitem Faktor
+- **WHEN** ein Zugang mit TOTP sich über den Anbieter anmeldet
+- **THEN** wird die Anmeldung mit dem Code-Schritt fortgesetzt
 
-### Requirement: Deleting a club on a managed installation
-The system SHALL let the operator delete a club with all its data only after the club's host name is confirmed, and SHALL leave every other club's data unchanged.
+### Requirement: Löschen eines Vereins auf einer Managed-Installation
+Das System MUSS (SHALL) der Betreiber:in erlauben, einen Verein mit allen Daten erst nach Bestätigung seines Hostnamens zu löschen, und MUSS die Daten aller anderen Vereine unverändert lassen.
 
-#### Scenario: Club leaves
-- **WHEN** the operator deletes a club with its host name confirmed
-- **THEN** no row of that club remains, the other clubs' invoices, journal and log are unchanged, and the host name signs nobody in
+#### Scenario: Verein verlässt die Installation
+- **WHEN** die Betreiber:in einen Verein mit bestätigtem Hostnamen löscht
+- **THEN** bleibt keine Zeile dieses Vereins übrig, Rechnungen, Buchungsjournal und Protokoll der anderen Vereine sind unverändert, und unter dem Hostnamen wird niemand mehr angemeldet
 
-#### Scenario: Wrong confirmation
-- **WHEN** the confirmation does not match the club's host name
-- **THEN** nothing is deleted
+#### Scenario: Falsche Bestätigung
+- **WHEN** die Bestätigung nicht dem Hostnamen des Vereins entspricht
+- **THEN** wird nichts gelöscht
 

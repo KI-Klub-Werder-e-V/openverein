@@ -1,198 +1,198 @@
 # api Specification
 
 ## Purpose
-The api capability covers the documented REST API with OpenAPI 3.1 and scoped API tokens (B M34), plus the cross-cutting rule that every action a human can take in the UI is also possible over the same public REST API, with RFC 9457 errors, cursor pagination and idempotency keys on money writes. Items that B rates "should" or "could" are marked as such in the requirement name; everything else is MVP behaviour.
+Die Capability api umfasst die dokumentierte REST-API mit OpenAPI 3.1 und API-Tokens mit Geltungsbereich (B M34) sowie die übergreifende Regel, dass jede Aktion, die ein Mensch in der Oberfläche ausführen kann, auch über dieselbe öffentliche REST-API möglich ist, mit Fehlern nach RFC 9457, Cursor-Paginierung und Idempotenzschlüsseln bei Geldschreibvorgängen. Punkte, die B mit „sollte“ oder „könnte“ bewertet, sind im Namen der Anforderung entsprechend gekennzeichnet; alles andere ist MVP-Verhalten.
 ## Requirements
-### Requirement: API parity with the UI
-The system SHALL expose every action available to a human user as a documented endpoint under `/api/v1`, and the web UI and portal SHALL use only these public endpoints, so that the API is complete by construction.
+### Requirement: API-Parität mit der Oberfläche
+Das System MUSS (SHALL) jede Aktion, die einer menschlichen Nutzer:in zur Verfügung steht, als dokumentierten Endpunkt unter `/api/v1` bereitstellen, und Weboberfläche und Portal MÜSSEN ausschließlich diese öffentlichen Endpunkte verwenden, sodass die API konstruktionsbedingt vollständig ist.
 
-#### Scenario: No private endpoints
-- **WHEN** the CI route check compares UI network calls with the OpenAPI document
-- **THEN** it fails on any call to an endpoint that is not documented
+#### Scenario: Keine privaten Endpunkte
+- **WHEN** die Routenprüfung im CI die Netzwerkaufrufe der Oberfläche mit dem OpenAPI-Dokument vergleicht
+- **THEN** schlägt sie bei jedem Aufruf eines nicht dokumentierten Endpunkts fehl
 
-### Requirement: OpenAPI document and docs
-The system SHALL generate an OpenAPI 3.1 document from the code at `/api/v1/openapi.json` and serve rendered reference docs at `/api/docs` without login.
+### Requirement: OpenAPI-Dokument und Dokumentation
+Das System MUSS (SHALL) aus dem Code ein OpenAPI-3.1-Dokument unter `/api/v1/openapi.json` erzeugen und unter `/api/docs` eine gerenderte Referenzdokumentation ohne Anmeldung ausliefern.
 
-#### Scenario: Public docs
-- **WHEN** an anonymous visitor opens `/api/docs`
-- **THEN** the rendered API reference is shown
+#### Scenario: Öffentliche Dokumentation
+- **WHEN** eine anonyme Besucher:in `/api/docs` öffnet
+- **THEN** wird die gerenderte API-Referenz angezeigt
 
-### Requirement: Representation conventions
-The system SHALL use JSON with `snake_case` fields, ISO 8601 dates, and amounts as integer cents with `currency: "EUR"`.
+### Requirement: Darstellungskonventionen
+Das System MUSS (SHALL) JSON mit Feldern in `snake_case`, Datumsangaben nach ISO 8601 und Beträge als ganzzahlige Cent mit `currency: "EUR"` verwenden.
 
-#### Scenario: Money as cents
-- **WHEN** an invoice of EUR 120.50 is read
-- **THEN** the amount is returned as `12050` with `currency: "EUR"`
+#### Scenario: Geld in Cent
+- **WHEN** eine Rechnung über 120,50 EUR gelesen wird
+- **THEN** wird der Betrag als `12050` mit `currency: "EUR"` zurückgegeben
 
-### Requirement: Cursor pagination and change filter
-The system SHALL paginate every collection with an opaque cursor (`?cursor=&limit=`, limit at most 200) and accept an `updated_since` filter on every collection.
+### Requirement: Cursor-Paginierung und Änderungsfilter
+Das System MUSS (SHALL) jede Sammlung mit einem opaken Cursor paginieren (`?cursor=&limit=`, Limit höchstens 200) und bei jeder Sammlung einen Filter `updated_since` akzeptieren.
 
-#### Scenario: Limit capped
-- **WHEN** a client requests `limit=500`
-- **THEN** at most 200 items are returned with a cursor to the next page
+#### Scenario: Limit begrenzt
+- **WHEN** ein Client `limit=500` anfordert
+- **THEN** werden höchstens 200 Einträge mit einem Cursor auf die nächste Seite zurückgegeben
 
-#### Scenario: Incremental sync
-- **WHEN** a client lists members with `updated_since=2026-10-01T00:00:00Z`
-- **THEN** only members changed since then are returned
+#### Scenario: Inkrementelle Synchronisierung
+- **WHEN** ein Client Mitglieder mit `updated_since=2026-10-01T00:00:00Z` auflistet
+- **THEN** werden nur Mitglieder zurückgegeben, die seitdem geändert wurden
 
-### Requirement: RFC 9457 problem details
-The system SHALL return every error as an RFC 9457 problem document with a stable `type` URI, a German or English `title` by request language, and for validation errors the failing fields.
+### Requirement: Problem Details nach RFC 9457
+Das System MUSS (SHALL) jeden Fehler als Problem-Dokument nach RFC 9457 zurückgeben, mit einer stabilen `type`-URI, einem deutschen oder englischen `title` je nach Anfragesprache und bei Validierungsfehlern den fehlerhaften Feldern.
 
-#### Scenario: Validation error
-- **WHEN** a member is created with an invalid e-mail
-- **THEN** the response is 400 or 422 with `application/problem+json` naming the field
+#### Scenario: Validierungsfehler
+- **WHEN** ein Mitglied mit ungültiger E-Mail-Adresse angelegt wird
+- **THEN** lautet die Antwort 400 oder 422 mit `application/problem+json` und nennt das Feld
 
-### Requirement: Idempotency keys on money writes
-The system SHALL require an `Idempotency-Key` header on every POST that creates money objects (invoices, fee-run posting, collection runs, allocations, donation receipts), store key and response for 24 hours, and return the stored response for a repeated key instead of acting twice.
+### Requirement: Idempotenzschlüssel bei Geldschreibvorgängen
+Das System MUSS (SHALL) bei jedem POST, der Geldobjekte anlegt (Rechnungen, Buchen eines Beitragslaufs, Einzugsläufe, Zuordnungen, Spendenbescheinigungen), einen `Idempotency-Key`-Header verlangen, Schlüssel und Antwort 24 Stunden speichern und bei wiederholtem Schlüssel die gespeicherte Antwort zurückgeben, statt doppelt zu handeln.
 
-#### Scenario: Retry after timeout
-- **WHEN** a client repeats a fee-run post with the same idempotency key
-- **THEN** the original response is returned and no second set of invoices is created
+#### Scenario: Wiederholung nach Zeitüberschreitung
+- **WHEN** ein Client das Buchen eines Beitragslaufs mit demselben Idempotenzschlüssel wiederholt
+- **THEN** wird die ursprüngliche Antwort zurückgegeben, und es entsteht kein zweiter Satz Rechnungen
 
-#### Scenario: Missing key
-- **WHEN** an invoice is created without an `Idempotency-Key` header
-- **THEN** the request is rejected with a problem document
+#### Scenario: Fehlender Schlüssel
+- **WHEN** eine Rechnung ohne `Idempotency-Key`-Header angelegt wird
+- **THEN** wird die Anfrage mit einem Problem-Dokument abgelehnt
 
-### Requirement: Optimistic concurrency
-The system SHALL return an `ETag` on resources and require `If-Match` on PATCH, rejecting stale writes with 412.
+### Requirement: Optimistische Nebenläufigkeitskontrolle
+Das System MUSS (SHALL) bei Ressourcen ein `ETag` zurückgeben und bei PATCH `If-Match` verlangen; veraltete Schreibvorgänge werden mit 412 abgelehnt.
 
-#### Scenario: Concurrent edit
-- **WHEN** two admins edit the same member and the second sends an outdated `If-Match`
-- **THEN** the second write is rejected with 412
+#### Scenario: Gleichzeitige Bearbeitung
+- **WHEN** zwei Admins dasselbe Mitglied bearbeiten und die zweite ein veraltetes `If-Match` sendet
+- **THEN** wird der zweite Schreibvorgang mit 412 abgelehnt
 
-### Requirement: Long operations as jobs
-The system SHALL answer long operations (fee runs, exports, imports, bulk actions, reports) with `202 Accepted` and a job resource whose progress is readable by `GET /jobs/{id}` and by server-sent events.
+### Requirement: Lange Vorgänge als Jobs
+Das System MUSS (SHALL) lange Vorgänge (Beitragsläufe, Exporte, Importe, Massenaktionen, Berichte) mit `202 Accepted` und einer Job-Ressource beantworten, deren Fortschritt über `GET /jobs/{id}` und über Server-Sent Events lesbar ist.
 
-#### Scenario: Export job
-- **WHEN** a client starts an export of 5,000 rows
-- **THEN** it receives 202 with a job id and later a result file link
+#### Scenario: Export-Job
+- **WHEN** ein Client einen Export von 5.000 Zeilen startet
+- **THEN** erhält er 202 mit einer Job-ID und später einen Link zur Ergebnisdatei
 
-### Requirement: Scoped API tokens
-The system SHALL let authorised users create API tokens with name, a role grant (any role, including scoped roles), optional expiry of at most one year, optional IP allow-list and last-used information; the token SHALL be shown once and stored only as a hash, and can be rotated and revoked; a token SHALL NOT hold finance write permission unless the issuing admin has TOTP enabled.
+### Requirement: API-Tokens mit Geltungsbereich
+Das System MUSS (SHALL) berechtigten Nutzer:innen erlauben, API-Tokens mit Name, Rollenzuweisung (jede Rolle, auch mit Geltungsbereich), optionalem Ablauf von höchstens einem Jahr, optionaler IP-Allowlist und Angabe der letzten Nutzung anzulegen; das Token MUSS einmalig angezeigt und nur als Hash gespeichert werden und kann rotiert und widerrufen werden; ein Token DARF NICHT Finanz-Schreibrechte halten, sofern die ausstellende Admin nicht TOTP aktiviert hat.
 
-#### Scenario: Shown once
-- **WHEN** a token is created
-- **THEN** its secret is displayed once and later only its prefix is visible
+#### Scenario: Einmalige Anzeige
+- **WHEN** ein Token angelegt wird
+- **THEN** wird sein Geheimnis einmal angezeigt, danach ist nur noch sein Präfix sichtbar
 
-#### Scenario: Revoked token
-- **WHEN** a revoked token is used
-- **THEN** the request is answered with 401
+#### Scenario: Widerrufenes Token
+- **WHEN** ein widerrufenes Token verwendet wird
+- **THEN** wird die Anfrage mit 401 beantwortet
 
-#### Scenario: Scoped token
-- **WHEN** a token bound to Division lead for "Tennis" lists members
-- **THEN** only members in the Tennis scope are returned
+#### Scenario: Token mit Geltungsbereich
+- **WHEN** ein Token, das an die Abteilungsleitung für „Tennis“ gebunden ist, Mitglieder auflistet
+- **THEN** werden nur Mitglieder im Geltungsbereich Tennis zurückgegeben
 
-### Requirement: Rate limits
-The system SHALL limit API use to 600 requests per minute per token by default, with tighter limits on authentication and public application endpoints, answering excess requests with 429 and a `Retry-After` header.
+### Requirement: Ratenbegrenzung
+Das System MUSS (SHALL) die API-Nutzung standardmäßig auf 600 Anfragen pro Minute und Token begrenzen, mit strengeren Grenzen für Authentifizierungs- und öffentliche Antrags-Endpunkte, und überzählige Anfragen mit 429 und einem `Retry-After`-Header beantworten.
 
-#### Scenario: Limit exceeded
-- **WHEN** a token sends its 601st request within a minute
-- **THEN** the response is 429 with `Retry-After`
+#### Scenario: Grenze überschritten
+- **WHEN** ein Token seine 601. Anfrage innerhalb einer Minute sendet
+- **THEN** lautet die Antwort 429 mit `Retry-After`
 
-### Requirement: API writes audited
-The system SHALL audit-log every API write with the token name.
+### Requirement: API-Schreibvorgänge im Audit-Protokoll
+Das System MUSS (SHALL) jeden API-Schreibvorgang mit dem Token-Namen im Audit-Protokoll erfassen.
 
-#### Scenario: Token write logged
-- **WHEN** the website integration token creates a person
-- **THEN** the audit log shows the creation with that token's name
+#### Scenario: Schreibvorgang per Token protokolliert
+- **WHEN** das Token der Website-Integration eine Person anlegt
+- **THEN** zeigt das Audit-Protokoll die Anlage mit dem Namen dieses Tokens
 
-### Requirement: Tokens cannot mint tokens
-The system SHALL only let signed-in users (not API tokens) create API tokens, so a leaked key cannot create further keys.
+### Requirement: Tokens können keine Tokens erzeugen
+Das System MUSS (SHALL) nur angemeldeten Nutzer:innen (nicht API-Tokens) das Anlegen von API-Tokens erlauben, sodass ein geleakter Schlüssel keine weiteren Schlüssel erzeugen kann.
 
-#### Scenario: Token tries to create a token
-- **WHEN** a request authenticated with an API token calls `POST /api/v1/api-tokens`
-- **THEN** the API answers 403 naming the missing permission
+#### Scenario: Token versucht, ein Token anzulegen
+- **WHEN** eine mit einem API-Token authentifizierte Anfrage `POST /api/v1/api-tokens` aufruft
+- **THEN** antwortet die API mit 403 und nennt die fehlende Berechtigung
 
-### Requirement: Failed attempts free the idempotency key
-The system SHALL store only successful responses under an idempotency key and SHALL let a request that failed be repeated with the same key.
+### Requirement: Fehlgeschlagene Versuche geben den Idempotenzschlüssel frei
+Das System MUSS (SHALL) unter einem Idempotenzschlüssel nur erfolgreiche Antworten speichern und MUSS erlauben, eine fehlgeschlagene Anfrage mit demselben Schlüssel zu wiederholen.
 
-#### Scenario: Retry after a validation error
-- **WHEN** an invoice request with key K fails validation and is sent again, corrected, with key K
-- **THEN** the invoice is created
+#### Scenario: Wiederholung nach Validierungsfehler
+- **WHEN** eine Rechnungsanfrage mit Schlüssel K an der Validierung scheitert und korrigiert mit Schlüssel K erneut gesendet wird
+- **THEN** wird die Rechnung angelegt
 
-### Requirement: Stale member edits are refused
-The system SHALL refuse a member change with 412 when the request carries an If-Match version that no longer matches the stored record.
+### Requirement: Veraltete Mitgliedsänderungen werden verweigert
+Das System MUSS (SHALL) eine Mitgliedsänderung mit 412 verweigern, wenn die Anfrage eine If-Match-Version trägt, die nicht mehr zum gespeicherten Datensatz passt.
 
-#### Scenario: Two editors
-- **WHEN** one admin saves a member and a second admin then saves a change based on the version read before
-- **THEN** the second change is refused with 412 and the record keeps the first change
+#### Scenario: Zwei Bearbeitende
+- **WHEN** eine Admin ein Mitglied speichert und eine zweite Admin danach eine Änderung auf Basis der zuvor gelesenen Version speichert
+- **THEN** wird die zweite Änderung mit 412 verweigert, und der Datensatz behält die erste Änderung
 
-### Requirement: Signed webhooks from an outbox
-The system SHALL queue a webhook delivery in the same transaction as every audited change of a subscribed topic, post it with an HMAC signature, and retry failed deliveries with backoff.
+### Requirement: Signierte Webhooks aus einer Outbox
+Das System MUSS (SHALL) für jede im Audit-Protokoll erfasste Änderung eines abonnierten Themas in derselben Transaktion eine Webhook-Zustellung einreihen, sie mit HMAC-Signatur senden und fehlgeschlagene Zustellungen mit Backoff wiederholen.
 
-#### Scenario: Receiver down
-- **WHEN** the receiver answers 500 to a member.created delivery
-- **THEN** the delivery stays queued with the attempt counted, and the next attempt after the backoff is signed and marked delivered on 2xx
+#### Scenario: Empfänger nicht erreichbar
+- **WHEN** der Empfänger auf eine member.created-Zustellung mit 500 antwortet
+- **THEN** bleibt die Zustellung mit gezähltem Versuch in der Warteschlange, und der nächste Versuch nach dem Backoff ist signiert und wird bei 2xx als zugestellt markiert
 
-### Requirement: Personal access tokens for admin accesses
-The system SHALL let a signed-in admin access create personal tokens after a step-up. A token acts as that access with its current role grants, narrowed to the token's level (read, or read and write) and optional module list. It SHALL stop working when the access is locked, and SHALL never pass a step-up check.
+### Requirement: Persönliche Zugriffstokens für Admin-Zugänge
+Das System MUSS (SHALL) einem angemeldeten Admin-Zugang erlauben, nach einer erneuten Bestätigung (Step-up) persönliche Tokens anzulegen. Ein Token handelt als dieser Zugang mit dessen aktuellen Rollenzuweisungen, eingeschränkt auf die Stufe des Tokens (Lesen oder Lesen und Schreiben) und eine optionale Modulliste. Es MUSS seine Wirkung verlieren, wenn der Zugang gesperrt wird, und DARF eine Step-up-Prüfung niemals bestehen.
 
-#### Scenario: Token follows the role
-- **WHEN** a treasurer's personal token is used after the treasurer lost the ledger right
-- **THEN** ledger routes answer 403 for that token
+#### Scenario: Token folgt der Rolle
+- **WHEN** das persönliche Token einer Kassenwart:in verwendet wird, nachdem sie das Recht auf das Hauptbuch verloren hat
+- **THEN** antworten die Hauptbuch-Routen für dieses Token mit 403
 
-#### Scenario: Read-only token
-- **WHEN** a read-only personal token calls a POST route the access itself may call
-- **THEN** the call is refused with 403
+#### Scenario: Nur-Lese-Token
+- **WHEN** ein persönliches Nur-Lese-Token eine POST-Route aufruft, die der Zugang selbst aufrufen darf
+- **THEN** wird der Aufruf mit 403 verweigert
 
-### Requirement: Personal access tokens for members
-The system SHALL let a member signed in to the portal create tokens that act as that portal sign-in (same club, same address, same portal switches). A read-only token SHALL be limited to GET.
+### Requirement: Persönliche Zugriffstokens für Mitglieder
+Das System MUSS (SHALL) einem im Portal angemeldeten Mitglied erlauben, Tokens anzulegen, die als diese Portal-Anmeldung handeln (gleicher Verein, gleiche Adresse, gleiche Portal-Schalter). Ein Nur-Lese-Token MUSS auf GET beschränkt sein.
 
-#### Scenario: Member agent reads own invoices
-- **WHEN** a member token calls `GET /api/v1/portal/invoices`
-- **THEN** it gets exactly the invoices the portal shows that member
+#### Scenario: Agent eines Mitglieds liest eigene Rechnungen
+- **WHEN** ein Mitglieds-Token `GET /api/v1/portal/invoices` aufruft
+- **THEN** erhält es genau die Rechnungen, die das Portal diesem Mitglied zeigt
 
-#### Scenario: Member token at an admin route
-- **WHEN** a member token calls `GET /api/v1/members`
-- **THEN** the call is refused with 401
+#### Scenario: Mitglieds-Token an einer Admin-Route
+- **WHEN** ein Mitglieds-Token `GET /api/v1/members` aufruft
+- **THEN** wird der Aufruf mit 401 verweigert
 
-### Requirement: Agent call log for the owner
-The system SHALL log every call made with a personal token (operation as method and route pattern, channel, status, time; no body, query, identifiers or IP), show the owner the last calls per token, and delete entries after 90 days.
+### Requirement: Agent-Aufrufprotokoll für die Inhaber:in
+Das System MUSS (SHALL) jeden Aufruf mit einem persönlichen Token protokollieren (Operation als Methode und Routenmuster, Kanal, Status, Zeit; kein Body, keine Query, keine Kennungen, keine IP), der Inhaber:in die letzten Aufrufe je Token zeigen und Einträge nach 90 Tagen löschen.
 
-#### Scenario: Owner sees the calls
-- **WHEN** a member's agent read their invoices twice
-- **THEN** the member's agent page lists two calls of `GET /portal/invoices` with status 200
+#### Scenario: Inhaber:in sieht die Aufrufe
+- **WHEN** der Agent eines Mitglieds dessen Rechnungen zweimal gelesen hat
+- **THEN** listet die Agent-Seite des Mitglieds zwei Aufrufe von `GET /portal/invoices` mit Status 200
 
-### Requirement: Per-token rate limit
-The system SHALL limit each personal token to 120 calls per minute and 2000 per hour and answer above that with 429 and `Retry-After`.
+### Requirement: Ratenbegrenzung pro Token
+Das System MUSS (SHALL) jedes persönliche Token auf 120 Aufrufe pro Minute und 2000 pro Stunde begrenzen und darüber mit 429 und `Retry-After` antworten.
 
-#### Scenario: Burst
-- **WHEN** a token makes its 121st call within a minute
-- **THEN** the call gets 429 with `Retry-After`
+#### Scenario: Lastspitze
+- **WHEN** ein Token seinen 121. Aufruf innerhalb einer Minute macht
+- **THEN** erhält der Aufruf 429 mit `Retry-After`
 
-### Requirement: Stable operation IDs
-The system SHALL give every documented operation a unique, stable `operationId`.
+### Requirement: Stabile Operation-IDs
+Das System MUSS (SHALL) jeder dokumentierten Operation eine eindeutige, stabile `operationId` geben.
 
-#### Scenario: Unique IDs
-- **WHEN** the OpenAPI document is generated
-- **THEN** no two operations share an `operationId`
+#### Scenario: Eindeutige IDs
+- **WHEN** das OpenAPI-Dokument erzeugt wird
+- **THEN** teilen sich keine zwei Operationen eine `operationId`
 
-### Requirement: Remote MCP server
-The system SHALL serve a stateless MCP server at `/mcp` (Streamable HTTP, POST only) whose tools are the API operations the caller's token may call. A tool call SHALL be executed as a call of the same API route with the same token.
+### Requirement: Entfernter MCP-Server
+Das System MUSS (SHALL) unter `/mcp` einen zustandslosen MCP-Server (Streamable HTTP, nur POST) ausliefern, dessen Tools die API-Operationen sind, die das Token der aufrufenden Stelle aufrufen darf. Ein Tool-Aufruf MUSS als Aufruf derselben API-Route mit demselben Token ausgeführt werden.
 
-#### Scenario: Tool equals REST
-- **WHEN** an agent calls the MCP tool for `GET /members`
-- **THEN** the tool result contains the same data the REST call returns for that token
+#### Scenario: Tool entspricht REST
+- **WHEN** ein Agent das MCP-Tool für `GET /members` aufruft
+- **THEN** enthält das Tool-Ergebnis dieselben Daten, die der REST-Aufruf für dieses Token liefert
 
-#### Scenario: Tool list follows rights
-- **WHEN** a member token lists the tools
-- **THEN** only portal operations are listed
+#### Scenario: Tool-Liste folgt den Rechten
+- **WHEN** ein Mitglieds-Token die Tools auflistet
+- **THEN** werden nur Portal-Operationen aufgelistet
 
-### Requirement: Command-line client
-The system SHALL serve a dependency-free CLI at `/ov.mjs` that calls any operation by its `operationId` with a token from `OV_TOKEN`.
+### Requirement: Kommandozeilen-Client
+Das System MUSS (SHALL) unter `/ov.mjs` eine CLI ohne Abhängigkeiten ausliefern, die jede Operation über ihre `operationId` mit einem Token aus `OV_TOKEN` aufruft.
 
-#### Scenario: CLI call
-- **WHEN** `OV_TOKEN=… node ov.mjs getPortalInvoices` runs against the instance
-- **THEN** it prints the JSON answer of that operation
+#### Scenario: CLI-Aufruf
+- **WHEN** `OV_TOKEN=… node ov.mjs getPortalInvoices` gegen die Instanz läuft
+- **THEN** gibt sie die JSON-Antwort dieser Operation aus
 
-### Requirement: OAuth 2.1 for MCP clients
-The system SHALL let MCP clients connect through OAuth 2.1 with dynamic client registration, PKCE S256, a consent page for the signed-in person and single-use authorization codes. The resulting token SHALL be valid only at `/mcp`.
+### Requirement: OAuth 2.1 für MCP-Clients
+Das System MUSS (SHALL) MCP-Clients die Verbindung über OAuth 2.1 erlauben, mit dynamischer Client-Registrierung, PKCE S256, einer Zustimmungsseite für die angemeldete Person und einmalig verwendbaren Autorisierungscodes. Das ausgestellte Token MUSS nur unter `/mcp` gültig sein.
 
-#### Scenario: Code used twice
-- **WHEN** a client redeems the same authorization code a second time
-- **THEN** the token endpoint answers `invalid_grant`
+#### Scenario: Code zweimal verwendet
+- **WHEN** ein Client denselben Autorisierungscode ein zweites Mal einlöst
+- **THEN** antwortet der Token-Endpunkt mit `invalid_grant`
 
-#### Scenario: OAuth token at REST
-- **WHEN** an OAuth-issued token calls `/api/v1/members` directly
-- **THEN** the call is refused with 401
+#### Scenario: OAuth-Token an REST
+- **WHEN** ein per OAuth ausgestelltes Token `/api/v1/members` direkt aufruft
+- **THEN** wird der Aufruf mit 401 verweigert
 

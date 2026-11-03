@@ -1,39 +1,39 @@
-# Full export format (schema version 2)
+# Format des Gesamtexports (Schemaversion 2)
 
-Admins create the export under Einstellungen → Gesamtexport (`POST /api/v1/exports/full`, fresh second factor required). It runs as a background job: the call answers 202 with the job, `GET /api/v1/jobs/:id` reports progress and, when done, `resultFileId`. It is stored encrypted for 7 days (and deleted when a person is anonymised); a download needs a fresh second factor too (`POST /api/v1/exports/full/:id/link` returns a link valid 60 seconds). Every creation and download is audit-logged. The whole export is read in one consistent snapshot.
+Admins erstellen den Export unter Einstellungen → Gesamtexport (`POST /api/v1/exports/full`, frischer zweiter Faktor nötig). Er läuft als Hintergrundauftrag: Der Aufruf antwortet mit 202 und dem Auftrag, `GET /api/v1/jobs/:id` meldet den Fortschritt und, wenn er fertig ist, `resultFileId`. Der Export wird 7 Tage lang verschlüsselt gespeichert (und gelöscht, wenn eine Person anonymisiert wird). Auch zum Herunterladen brauchst Du einen frischen zweiten Faktor (`POST /api/v1/exports/full/:id/link` liefert einen Link, der 60 Sekunden gilt). Jede Erstellung und jeder Download steht im Änderungsprotokoll. Der ganze Export wird aus einem einzigen, in sich stimmigen Datenbankstand gelesen.
 
-## Layout
+## Aufbau
 
 ```
 manifest.json
-data/<table>.jsonl   one JSON object per line, one line per row
-data/<table>.csv     the same rows for spreadsheets (UTF-8 with BOM, ";" separated, formula-safe)
-files/<sha256>       every stored file once, named by its SHA-256 (see data/file.jsonl for names and owners)
+data/<table>.jsonl   ein JSON-Objekt pro Zeile, eine Zeile pro Datensatz
+data/<table>.csv     dieselben Datensätze für Tabellenkalkulationen (UTF-8 mit BOM, durch ";" getrennt, formelsicher)
+files/<sha256>       jede gespeicherte Datei einmal, benannt nach ihrem SHA-256 (Namen und Besitzer stehen in data/file.jsonl)
 ```
 
 ## manifest.json
 
-| Key | Meaning |
+| Schlüssel | Bedeutung |
 |---|---|
-| `schemaVersion` | `"2"`; bumped when this document changes incompatibly (2: `invoice_einvoice.xml` is the readable XML instead of encrypted bytes) |
-| `exportedAt` | ISO timestamp |
-| `organizationId` | id of the exported club |
-| `databaseVersion` | name of the last applied migration (`migrations/NNNN_*.sql`) |
-| `counts` | rows per table |
-| `missingFiles` | SHA-256 of stored files that were not readable (should be empty) |
-| `corruptFiles` | SHA-256 of stored files whose bytes no longer match their hash (should be empty) |
-| `undecryptable` | count per `table.column` of encrypted values that could not be decrypted (should be empty; check `DATA_KEY`) |
-| `files` | SHA-256 of every other entry in the ZIP, by path |
+| `schemaVersion` | `"2"`; wird erhöht, wenn sich dieses Dokument inkompatibel ändert (2: `invoice_einvoice.xml` ist das lesbare XML statt verschlüsselter Bytes) |
+| `exportedAt` | ISO-Zeitstempel |
+| `organizationId` | ID des exportierten Vereins |
+| `databaseVersion` | Name der zuletzt angewendeten Migration (`migrations/NNNN_*.sql`) |
+| `counts` | Datensätze je Tabelle |
+| `missingFiles` | SHA-256 gespeicherter Dateien, die nicht lesbar waren (sollte leer sein) |
+| `corruptFiles` | SHA-256 gespeicherter Dateien, deren Inhalt nicht mehr zu ihrem Hash passt (sollte leer sein) |
+| `undecryptable` | Anzahl je `table.column` verschlüsselter Werte, die sich nicht entschlüsseln ließen (sollte leer sein; prüfe `DATA_KEY`) |
+| `files` | SHA-256 jedes anderen Eintrags im ZIP, nach Pfad |
 
-## Rows
+## Datensätze
 
-- Tables and columns are those of the database at `databaseVersion` (see `migrations/`). Every table with an `organization_id` is exported with the club's rows; `receipt_line`, `donation_receipt_item`, `datev_export_entry`, `household_rule`, `assembly_item`, `assembly_attendance` and `poll_vote` through their parent.
-- Dates and timestamps are ISO strings; binary columns (stored PDFs, DATEV ZIPs) are `{ "base64": "…" }` in JSONL and left out of the CSV.
-- Encrypted columns are exported decrypted under the name without `_encrypted` (for example `sepa_mandate.iban`); IBAN change requests from the portal are decrypted in `change_request.old_value` / `new_value`; the issued XRechnung is `invoice_einvoice.xml` as text (its `sha256` is the hash of that text).
-- CSV headers come from the schema, so empty tables still have their header row.
-- Poll answers (`poll_vote`) come without `member_id`: the board sees only counts, the export too.
-- Never exported: sessions, portal sessions, login codes, recovery codes, idempotency keys, password hashes, invitation and API token hashes, TOTP secrets, keyed lookup hashes (`*_hash` blind indexes).
+- Tabellen und Spalten entsprechen der Datenbank beim Stand `databaseVersion` (siehe `migrations/`). Jede Tabelle mit `organization_id` wird mit den Datensätzen des Vereins exportiert; `receipt_line`, `donation_receipt_item`, `datev_export_entry`, `household_rule`, `assembly_item`, `assembly_attendance` und `poll_vote` über ihren übergeordneten Datensatz.
+- Datumsangaben und Zeitstempel sind ISO-Strings. Binäre Spalten (gespeicherte PDFs, DATEV-ZIPs) stehen im JSONL als `{ "base64": "…" }` und fehlen im CSV.
+- Verschlüsselte Spalten werden entschlüsselt unter dem Namen ohne `_encrypted` exportiert (zum Beispiel `sepa_mandate.iban`). IBAN-Änderungswünsche aus dem Portal stehen entschlüsselt in `change_request.old_value` / `new_value`. Die ausgestellte XRechnung ist `invoice_einvoice.xml` als Text (ihr `sha256` ist der Hash dieses Texts).
+- Die CSV-Kopfzeilen kommen aus dem Schema, darum haben auch leere Tabellen ihre Kopfzeile.
+- Antworten auf Umfragen (`poll_vote`) kommen ohne `member_id`: Der Vorstand sieht nur Zahlen, der Export auch.
+- Nie exportiert werden: Sitzungen, Portal-Sitzungen, Anmeldecodes, Wiederherstellungscodes, Idempotenzschlüssel, Passwort-Hashes, Hashes von Einladungen und API-Token, TOTP-Geheimnisse, Hashes für verschlüsselte Suche (`*_hash`-Blind-Indizes).
 
-## Restoring
+## Zurückspielen
 
-Importing a full export into an empty instance (round trip) is not implemented yet; the format keeps primary keys and references so that it can be.
+Einen Gesamtexport in eine leere Instanz zu importieren (Round Trip) ist noch nicht umgesetzt. Das Format behält Primärschlüssel und Verweise, damit das möglich wird.

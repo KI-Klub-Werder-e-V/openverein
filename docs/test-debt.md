@@ -1,94 +1,96 @@
-# Test debt
+# Testschulden
 
-Guards that review fixes added without a test of their own, and the tests that now cover them. Every test was run
-against the code before its fix and failed there (how is listed per row). Database guards are checked against the old
-state by leaving the newer migration files out: `tests/global-setup.ts` recreates the test database from the
-migrations on every run, so editing it by hand before a run proves nothing.
+Schutzprüfungen, die Review-Fixes ohne eigenen Test eingeführt haben, und die Tests, die sie jetzt abdecken. Jeder Test
+wurde gegen den Code vor seinem Fix ausgeführt und schlug dort fehl (wie, steht in jeder Zeile). Schutzprüfungen in der
+Datenbank werden gegen den alten Stand geprüft, indem die neueren Migrationsdateien weggelassen werden: `tests/global-setup.ts`
+baut die Testdatenbank bei jedem Lauf aus den Migrationen neu auf; sie vor einem Lauf von Hand zu ändern, beweist also nichts.
 
-Run the code tests with `npx vitest run tests/testDebt.test.ts`, the operations round trips with
-`scripts/ovctl-roundtrip.sh` (Docker; also in CI, workflow "ovctl round trips").
+Führe die Code-Tests mit `npx vitest run tests/testDebt.test.ts` aus, die Betriebs-Roundtrips mit
+`scripts/ovctl-roundtrip.sh` (Docker; auch in der CI, Workflow "ovctl round trips").
 
-| Group / PR | Guard | Test | Fails on the old code |
+Test-Namen in Anführungszeichen sind die Original-Titel aus den Testdateien und bleiben deshalb englisch.
+
+| Gruppe / PR | Schutzprüfung | Test | Schlägt mit dem alten Code fehl |
 |---|---|---|---|
-| G8 / #103 | Job lease: a reclaimed run stores no result | `testDebt` "job lease" (a test trigger reclaims the job at its first progress) | yes: `worker.ts` and `fullJob.ts` from before #103 store the export |
-| G8 / #103, #113 | Export vs erasure | `testDebt` "export vs erasure" (an erasure with an old start time commits during the export) | yes, both without the guard (before #103) and with the timestamp check of #103 |
-| G8 / #103 | Period lock counts reversed, never posted payments | `testDebt` "period lock" (`unpostedPayments`) | yes: `ledger/service.ts` from before #103 counts 0 |
-| G9 / #104 | Bulk job retry returns the stored result | `testDebt` "bulk job" | yes: `bulkJob.ts` from before #104 applies the change again |
-| G9 / #104 | Bulk scope decided under lock | `testDebt` "bulk scope" (a membership is ended in a transaction open during the bulk action) | yes: `bulk.ts` from before #104 adds the member |
-| G10 / #105 | Expense claim with a future date is not approved | `testDebt` "expense claim" | yes: the approval goes through without the check |
-| G10 / #105 | One invitation when two arrive at once | `testDebt` "assembly" (a test trigger pauses the first invitation) | yes: both send |
-| G10 / #105 | Work-hour settlement waits for hours being logged | `testDebt` "work hours" | yes: `workHours.ts` from before #105 bills the missing hours |
-| G12 / #107 | Full export without the poll voter | `testDebt` "poll answers" | yes: `member_id` is exported |
-| G12 / #107 | Treasurer report carries the demo watermark | `testDebt` "treasurer report" (watermark colour in the content streams) | yes: `report-pdf.ts` from before #107 has none |
-| G17 / #113 | Archived-person trigger locks, then reads | `testDebt` "archived person" (a table with the trigger and no foreign key) | yes: without migration 0071 (the 0064 trigger) the insert goes through. (A first check said otherwise: it edited the test database, which `tests/global-setup.ts` recreates from all migrations on every run. Old database states are checked by leaving the newer migration files out.) |
-| G9 / #104, G17 / #113 | `ovctl restore` never prunes its own target (backup folder spelled `./backups/`) | `scripts/ovctl-roundtrip.sh`, restore part | yes: `ovctl` from before #113 deletes the target and stops at the dropped database |
-| G11 / #106 | Failed `ovctl update` rolls code and data back | `scripts/ovctl-roundtrip.sh`, update part (a broken release is pushed to the clone's origin) | yes: `ovctl` from before #106 only prints the commands (HEAD stays on the broken release) |
-| G9 / #104 | Backup and restore keep database and files together | `scripts/ovctl-roundtrip.sh` (club name and a marker file restored) | the first live run; there was no earlier test to fail |
+| G8 / #103 | Job-Lease: Ein zurückgeholter Lauf speichert kein Ergebnis | `testDebt` "job lease" (ein Test-Trigger holt den Job bei seinem ersten Fortschritt zurück) | ja: `worker.ts` und `fullJob.ts` von vor #103 speichern den Export |
+| G8 / #103, #113 | Export vs. Löschung | `testDebt` "export vs erasure" (eine Löschung mit alter Startzeit wird während des Exports festgeschrieben) | ja, sowohl ohne die Schutzprüfung (vor #103) als auch mit der Zeitstempelprüfung aus #103 |
+| G8 / #103 | Periodensperre zählt stornierte, nie gebuchte Zahlungen | `testDebt` "period lock" (`unpostedPayments`) | ja: `ledger/service.ts` von vor #103 zählt 0 |
+| G9 / #104 | Wiederholung eines Massenjobs liefert das gespeicherte Ergebnis | `testDebt` "bulk job" | ja: `bulkJob.ts` von vor #104 wendet die Änderung erneut an |
+| G9 / #104 | Umfang der Massenaktion wird unter Sperre bestimmt | `testDebt` "bulk scope" (eine Mitgliedschaft wird in einer Transaktion beendet, die während der Massenaktion offen ist) | ja: `bulk.ts` von vor #104 nimmt das Mitglied auf |
+| G10 / #105 | Auslagenerstattung mit Datum in der Zukunft wird nicht genehmigt | `testDebt` "expense claim" | ja: die Genehmigung geht ohne die Prüfung durch |
+| G10 / #105 | Eine Einladung, wenn zwei gleichzeitig eintreffen | `testDebt` "assembly" (ein Test-Trigger hält die erste Einladung an) | ja: beide werden versendet |
+| G10 / #105 | Abrechnung der Arbeitsstunden wartet auf Stunden, die gerade erfasst werden | `testDebt` "work hours" | ja: `workHours.ts` von vor #105 berechnet die fehlenden Stunden |
+| G12 / #107 | Vollexport ohne die abstimmende Person einer Umfrage | `testDebt` "poll answers" | ja: `member_id` wird exportiert |
+| G12 / #107 | Kassenbericht trägt das Demo-Wasserzeichen | `testDebt` "treasurer report" (Farbe des Wasserzeichens in den Content-Streams) | ja: `report-pdf.ts` von vor #107 hat keines |
+| G17 / #113 | Trigger für archivierte Personen sperrt erst, dann liest er | `testDebt` "archived person" (eine Tabelle mit dem Trigger und ohne Fremdschlüssel) | ja: ohne Migration 0071 (der Trigger aus 0064) geht das Insert durch. (Eine erste Prüfung ergab etwas anderes: Sie änderte die Testdatenbank, die `tests/global-setup.ts` bei jedem Lauf aus allen Migrationen neu aufbaut. Alte Datenbankstände werden geprüft, indem die neueren Migrationsdateien weggelassen werden.) |
+| G9 / #104, G17 / #113 | `ovctl restore` löscht nie sein eigenes Ziel (Backup-Ordner als `./backups/` geschrieben) | `scripts/ovctl-roundtrip.sh`, Teil restore | ja: `ovctl` von vor #113 löscht das Ziel und bricht an der gelöschten Datenbank ab |
+| G11 / #106 | Fehlgeschlagenes `ovctl update` rollt Code und Daten zurück | `scripts/ovctl-roundtrip.sh`, Teil update (ein defektes Release wird auf den origin des Klons gepusht) | ja: `ovctl` von vor #106 gibt die Befehle nur aus (HEAD bleibt auf dem defekten Release) |
+| G9 / #104 | Backup und Wiederherstellung halten Datenbank und Dateien zusammen | `scripts/ovctl-roundtrip.sh` (Vereinsname und eine Markierungsdatei werden wiederhergestellt) | der erste Live-Lauf; es gab keinen früheren Test, der hätte fehlschlagen können |
 
-Not covered by a test:
+Nicht durch einen Test abgedeckt:
 
-- The future-date check on portal expense submission (`POST /portal/expenses`): the approval check above covers the
-  money path; the submission check is the same comparison.
-- Streaming exports above 4 GB (deferred, see decisions.md).
+- Die Prüfung auf ein Datum in der Zukunft beim Einreichen von Auslagen im Portal (`POST /portal/expenses`): Die
+  Genehmigungsprüfung oben deckt den Geldfluss ab; die Prüfung beim Einreichen ist derselbe Vergleich.
+- Streamende Exporte über 4 GB (verschoben, siehe decisions.md).
 
-## Second review pass (Codex) on groups reviewed by claude-counsel
+## Zweiter Review-Durchgang (Codex) für Gruppen, die claude-counsel geprüft hat
 
-| Group | Finding | Test | Fails on the old code |
+| Gruppe | Befund | Test | Schlägt mit dem alten Code fehl |
 |---|---|---|---|
-| G6 | Idempotent replay needs the right today | `g6Second` "replays … only while the caller still has the right" | yes |
-| G6 | An anonymised person stays final | `g6Second` "keeps an anonymised person final" | yes (without 0072) |
-| G6 | A failed erasure replay stops the start | `g6Second` "does not start …" | yes |
-| G6 | Legal hold vs anonymisation | `g6Second` "refuses a legal hold …" | yes |
-| G6 | Donation sphere from its income account; no receipt for economic income | `g6Second` "books a donation in the sphere …" | yes |
-| G6 | Donations are never deleted | `g6Second` "never deletes a donation" | yes (without 0072) |
-| G6 | Reversals need an idempotency key; DATEV exports append-only | `g6Second` "needs an idempotency key …" | yes |
-| G6 | Art. 15 covers every person-linked table and the stored files | `g6Second` "puts every person-linked table …" | yes |
-| G13 | Net price with a quantity that changes the line total is refused | `g13Second` "refuses a net price …" | yes |
-| G13 | Credit notes get no "please pay" default text | `g13Second` "gives a credit note …" | yes |
-| G13 | Cancelled dunning fee not claimed on a letter | `fees` "proposes and applies dunning …" (`feeCents`) | yes |
-| G13 | Long SEPA remittance keeps the invoice number | `g13Second` "keeps the invoice number …" | yes |
-| G13 | Closing text in the XRechnung | `g13Second` "puts the closing text …" | yes |
-| G13 | Non-member payer sees the household invoice (deny wins) | `portalVerify` "Codex review G13 …" | yes |
-| G13 | Expense decision mail queued in the decision's transaction | `g13Second` "queues the expense decision mail …" | yes |
-| G14 | Tasks closed to API keys | `g14Second` "keeps tasks away from API keys" | yes |
-| G14 | Task edit checked against the locked row | `g14Second` "checks a task edit …" | yes |
-| G14 | No future bank booking; no reversal before its original | `g14Second` "does not book a bank movement …" | yes |
-| G14 | Unmatch rights follow the movement's state | `g14Second` "lets a treasurer without invoice rights …" | yes |
-| G14 | Offer drafts erased, exported, no convert after anonymisation | `g14Second` "erases offer drafts …" | yes |
-| G14 | No tax on a retired tax account | `g14Second` "posts no tax to a retired tax account" | yes |
-| G14 | Greetings only for preferred channel e-mail | `g14Second` "sends no greeting mail …" | yes |
-| G14 | Scheduled preview retried after a passing fault | `g14Second` "gives the month back …" | yes |
-| G14 | Tax-rate end date under the journal lock | none | Not tested: a booking would have to stop between its rate check and its insert, and the code has no hook for that. The fix is the same `lockJournal` that every booking takes first. |
-| G15 | Temp-file sweep rechecks the locked row | `g15Second` "does not expire a temporary file …" | yes |
-| G15 | RSVP validates and charges from the locked event | `g15Second` "charges the price the event has …" | yes |
-| G15 | Child price needs a regular price and is not above it (0073) | `g15Second` "refuses a child price …" | yes (migration moved out) |
-| G15 | Released run does not re-arm an amendment carried by a later submitted run | `g15Second` "does not re-arm an amendment …" | yes |
-| G15 | Import locks matched rows before the plan check | `g15Second` "does not overwrite a member edit …" | yes |
-| G15 | Portal codes, failures and lock per club | `g15Second` "accepts a portal code only at the club …" | yes |
-| G15 | ICS entry with unreadable DTEND/DURATION skipped | `g15Second` "skips a calendar entry …" | yes |
-| G15 | Demo reset visible to every instance (advisory lock as lease) | `g15Second` "tells every instance …" | yes |
-| G17 | IPv6 forms carrying an IPv4 address (compatible, 6to4, Teredo) blocked for webhooks | `g17Second` "blocks IPv6 forms …" | yes. The mapped form (`::ffff:7f00:1`) was already blocked: Node 24's BlockList checks mapped addresses against the IPv4 rules; the test pins it. |
-| G17 | Old transfer invoice not debited after a switch to direct debit | `g17Second` "does not debit an invoice …" | no: already guarded before the review (the invoice must have announced this mandate, `no_prenotification`); the test pins it. |
-| G17 | Idempotent replay only to unchanged rights (0080) | `g17Second` "replays a stored money answer …" | yes (migration moved out) |
-| G17 | Art. 15: clear IBANs, claim receipts, all file versions; no ballot choices | `g17Second` "gives the person their stored data …" | yes |
-| G17 | Work-hour settlement recomputed under locks | `g17Second` "settles work hours …" | yes |
-| G17 | Restore keeps erasures and purges recorded only in the database | `scripts/ovctl-roundtrip.sh` (person "Wiederkehr") | no: with the old ovctl the scenario passes too, because the safety backup before every restore restarts the app, and its start-up replay writes the missing line into the file. The database merge covers a start that cannot repair the file (read-only or full volume), which the round trip cannot set up without breaking the app. |
-| G18 | Operator export checked and recorded under club and erasure locks | `g18Second` "records an operator export before an erasure …" | yes |
-| G18 | Ownerless legacy attendance marks stay unclaimed until someone takes them over (merged, conflicts kept) | `offlineQueue` "leaves old ownerless marks unclaimed …" | yes |
-| G18 | Flushing is bound to the user who started it and stops when someone else signs in | `offlineQueue` "stops sending when another person signs in …" | yes |
-| G16 | OIDC requests (discovery, token, keys) only to public addresses, pinned | `oidc` "fetches no issuer in a private network" | yes. The token and keys endpoints use the same guarded fetch (set on the configuration). A public issuer naming a private token endpoint cannot be set up in a test (it needs a public address). |
-| G16 | OIDC sign-in by (issuer, subject); e-mail only for the first link (0074) | `oidc` "follows the provider identity …" | yes |
-| G16 | Club deletion intent written (fsync) before deleting; withdrawn on rollback | `g16Second` "writes the deletion intent …", "withdraws the intent …" | yes |
-| G16 | Application confirmation counted per club | `applications` "Codex review G16 …" | yes |
-| G16 | Offline attendance mark refused after a newer correction (409) | `g16Second` "refuses an offline attendance mark …" | yes |
-| G16 | Overview arrangement: one save at a time | none | Not tested: the race is two clicks within one save round trip in the browser; the controls are disabled while a save runs, which a unit test would only restate. |
-| G16 | Operator audit with real before-values | `g16Second` "records the real before-values …" | yes |
-| Agent access (#122-#124) | Portal sign-ins and member tokens end with the address (0092) | `agentSecond` "P1: ends portal sign-ins …" | yes |
-| Agent access | Module-limited tokens closed outside modules; API keys need a person | `agentSecond` "keeps a module-limited token …" | yes |
-| Agent access | No stored answer for group-limited grants | `agentSecond` "does not replay …" | yes |
-| Agent access | MCP tool list from route metadata; bodyless DELETE | `agentSecond` "lists tools by what the route needs …" | yes |
-| Agent access | /mcp requests counted once each | `agentMcp` "takes one message per request …" | yes |
-| Agent access | Every live token listed | `agentSecond` "always lists every live token …" | yes |
-| Agent access | CLI files 0600, no overwrite | `agentSecond` "saves CLI downloads …" | yes |
-| Agent access | Jobs re-check token and rights in the mutation transaction | none | Not tested: the revocation or role change would have to land between the job's start and its write, and the worker has no pause point for a test. The check runs in `owned()`, under the job and token row locks. |
-| Agent access | No token in the setup commands | none | UI text only (AgentTokens.tsx); no secret is interpolated any more, which review of the file shows. |
+| G6 | Idempotente Wiederholung braucht das heute gültige Recht | `g6Second` "replays … only while the caller still has the right" | ja |
+| G6 | Eine anonymisierte Person bleibt endgültig | `g6Second` "keeps an anonymised person final" | ja (ohne 0072) |
+| G6 | Eine fehlgeschlagene Wiederholung von Löschungen stoppt den Start | `g6Second` "does not start …" | ja |
+| G6 | Legal Hold vs. Anonymisierung | `g6Second` "refuses a legal hold …" | ja |
+| G6 | Spendensphäre aus ihrem Ertragskonto; keine Bestätigung für wirtschaftliche Einnahmen | `g6Second` "books a donation in the sphere …" | ja |
+| G6 | Spenden werden nie gelöscht | `g6Second` "never deletes a donation" | ja (ohne 0072) |
+| G6 | Stornobuchungen brauchen einen Idempotenzschlüssel; DATEV-Exporte nur anhängbar | `g6Second` "needs an idempotency key …" | ja |
+| G6 | Art. 15 umfasst jede personenbezogene Tabelle und die gespeicherten Dateien | `g6Second` "puts every person-linked table …" | ja |
+| G13 | Nettopreis mit einer Menge, die die Positionssumme verändert, wird abgelehnt | `g13Second` "refuses a net price …" | ja |
+| G13 | Gutschriften bekommen keinen Standardtext „bitte zahlen“ | `g13Second` "gives a credit note …" | ja |
+| G13 | Stornierte Mahngebühr wird in keinem Brief gefordert | `fees` "proposes and applies dunning …" (`feeCents`) | ja |
+| G13 | Langer SEPA-Verwendungszweck behält die Rechnungsnummer | `g13Second` "keeps the invoice number …" | ja |
+| G13 | Schlusstext in der XRechnung | `g13Second` "puts the closing text …" | ja |
+| G13 | Zahler ohne Mitgliedschaft sieht die Haushaltsrechnung (Verbot gewinnt) | `portalVerify` "Codex review G13 …" | ja |
+| G13 | Mail zur Auslagenentscheidung wird in der Transaktion der Entscheidung eingereiht | `g13Second` "queues the expense decision mail …" | ja |
+| G14 | Aufgaben für API-Schlüssel gesperrt | `g14Second` "keeps tasks away from API keys" | ja |
+| G14 | Bearbeitung einer Aufgabe wird gegen die gesperrte Zeile geprüft | `g14Second` "checks a task edit …" | ja |
+| G14 | Keine Bankbuchung in der Zukunft; keine Stornobuchung vor ihrem Original | `g14Second` "does not book a bank movement …" | ja |
+| G14 | Recht zum Aufheben einer Zuordnung folgt dem Zustand des Umsatzes | `g14Second` "lets a treasurer without invoice rights …" | ja |
+| G14 | Angebotsentwürfe werden gelöscht, exportiert, keine Umwandlung nach Anonymisierung | `g14Second` "erases offer drafts …" | ja |
+| G14 | Keine Steuer auf ein stillgelegtes Steuerkonto | `g14Second` "posts no tax to a retired tax account" | ja |
+| G14 | Glückwünsche nur bei bevorzugtem Kanal E-Mail | `g14Second` "sends no greeting mail …" | ja |
+| G14 | Geplante Vorschau wird nach einem vorübergehenden Fehler wiederholt | `g14Second` "gives the month back …" | ja |
+| G14 | Enddatum des Steuersatzes unter der Journalsperre | keiner | Nicht getestet: Eine Buchung müsste zwischen ihrer Satzprüfung und ihrem Insert anhalten, und der Code hat dafür keinen Haken. Der Fix ist derselbe `lockJournal`, den jede Buchung zuerst nimmt. |
+| G15 | Bereinigung temporärer Dateien prüft die gesperrte Zeile erneut | `g15Second` "does not expire a temporary file …" | ja |
+| G15 | Zusage prüft und berechnet anhand des gesperrten Termins | `g15Second` "charges the price the event has …" | ja |
+| G15 | Kinderpreis braucht einen regulären Preis und liegt nicht darüber (0073) | `g15Second` "refuses a child price …" | ja (Migration herausgenommen) |
+| G15 | Freigegebener Lauf aktiviert keine Mandatsänderung erneut, die ein später eingereichter Lauf trägt | `g15Second` "does not re-arm an amendment …" | ja |
+| G15 | Import sperrt zugeordnete Zeilen vor der Planprüfung | `g15Second` "does not overwrite a member edit …" | ja |
+| G15 | Portal-Codes, Fehlversuche und Sperre pro Verein | `g15Second` "accepts a portal code only at the club …" | ja |
+| G15 | ICS-Eintrag mit unlesbarem DTEND/DURATION wird übersprungen | `g15Second` "skips a calendar entry …" | ja |
+| G15 | Demo-Reset für jede Instanz sichtbar (Advisory Lock als Lease) | `g15Second` "tells every instance …" | ja |
+| G17 | IPv6-Formen, die eine IPv4-Adresse tragen (kompatibel, 6to4, Teredo), für Webhooks blockiert | `g17Second` "blocks IPv6 forms …" | ja. Die gemappte Form (`::ffff:7f00:1`) war bereits blockiert: Die BlockList von Node 24 prüft gemappte Adressen gegen die IPv4-Regeln; der Test hält das fest. |
+| G17 | Alte Überweisungsrechnung wird nach einem Wechsel zur Lastschrift nicht eingezogen | `g17Second` "does not debit an invoice …" | nein: schon vor dem Review abgesichert (die Rechnung muss dieses Mandat angekündigt haben, `no_prenotification`); der Test hält das fest. |
+| G17 | Idempotente Wiederholung nur bei unveränderten Rechten (0080) | `g17Second` "replays a stored money answer …" | ja (Migration herausgenommen) |
+| G17 | Art. 15: IBANs im Klartext, Auslagenbelege, alle Dateiversionen; keine Stimmabgaben | `g17Second` "gives the person their stored data …" | ja |
+| G17 | Abrechnung der Arbeitsstunden unter Sperren neu berechnet | `g17Second` "settles work hours …" | ja |
+| G17 | Wiederherstellung behält Löschungen und Bereinigungen, die nur in der Datenbank erfasst sind | `scripts/ovctl-roundtrip.sh` (Person "Wiederkehr") | nein: Mit dem alten ovctl besteht das Szenario ebenfalls, weil das Sicherheitsbackup vor jeder Wiederherstellung die App neu startet und deren Wiederholung beim Start die fehlende Zeile in die Datei schreibt. Das Zusammenführen in der Datenbank deckt einen Start ab, der die Datei nicht reparieren kann (schreibgeschütztes oder volles Volume); das lässt sich im Roundtrip nicht herstellen, ohne die App kaputtzumachen. |
+| G18 | Betreiber-Export unter Vereins- und Löschsperre geprüft und erfasst | `g18Second` "records an operator export before an erasure …" | ja |
+| G18 | Alte Anwesenheitsmarkierungen ohne Eigentümer bleiben unbeansprucht, bis jemand sie übernimmt (zusammengeführt, Konflikte bleiben erhalten) | `offlineQueue` "leaves old ownerless marks unclaimed …" | ja |
+| G18 | Das Senden ist an den Benutzer gebunden, der es gestartet hat, und stoppt, wenn sich jemand anderes anmeldet | `offlineQueue` "stops sending when another person signs in …" | ja |
+| G16 | OIDC-Anfragen (Discovery, Token, Keys) nur an öffentliche Adressen, gepinnt | `oidc` "fetches no issuer in a private network" | ja. Die Token- und Keys-Endpunkte verwenden denselben abgesicherten Fetch (an der Konfiguration gesetzt). Ein öffentlicher Issuer, der einen privaten Token-Endpunkt nennt, lässt sich im Test nicht aufsetzen (dafür braucht es eine öffentliche Adresse). |
+| G16 | OIDC-Anmeldung über (Issuer, Subject); E-Mail nur für die erste Verknüpfung (0074) | `oidc` "follows the provider identity …" | ja |
+| G16 | Löschabsicht für den Verein wird vor dem Löschen geschrieben (fsync); bei Rollback zurückgezogen | `g16Second` "writes the deletion intent …", "withdraws the intent …" | ja |
+| G16 | Antragsbestätigung pro Verein gezählt | `applications` "Codex review G16 …" | ja |
+| G16 | Offline-Anwesenheitsmarkierung nach einer neueren Korrektur abgelehnt (409) | `g16Second` "refuses an offline attendance mark …" | ja |
+| G16 | Anordnung der Übersicht: immer nur ein Speichervorgang | keiner | Nicht getestet: Die Race Condition sind zwei Klicks innerhalb eines Speicher-Roundtrips im Browser; die Bedienelemente sind gesperrt, solange gespeichert wird, was ein Unit-Test nur wiederholen würde. |
+| G16 | Betreiber-Audit mit echten Vorher-Werten | `g16Second` "records the real before-values …" | ja |
+| Agentenzugang (#122-#124) | Portal-Anmeldungen und Mitglieder-Tokens enden mit der Adresse (0092) | `agentSecond` "P1: ends portal sign-ins …" | ja |
+| Agentenzugang | Auf Module beschränkte Tokens außerhalb ihrer Module gesperrt; API-Schlüssel brauchen eine Person | `agentSecond` "keeps a module-limited token …" | ja |
+| Agentenzugang | Keine gespeicherte Antwort bei gruppenbeschränkten Berechtigungen | `agentSecond` "does not replay …" | ja |
+| Agentenzugang | MCP-Werkzeugliste aus Routen-Metadaten; DELETE ohne Body | `agentSecond` "lists tools by what the route needs …" | ja |
+| Agentenzugang | /mcp-Anfragen werden jeweils einmal gezählt | `agentMcp` "takes one message per request …" | ja |
+| Agentenzugang | Jedes gültige Token wird aufgelistet | `agentSecond` "always lists every live token …" | ja |
+| Agentenzugang | CLI-Dateien 0600, kein Überschreiben | `agentSecond` "saves CLI downloads …" | ja |
+| Agentenzugang | Jobs prüfen Token und Rechte in der Transaktion der Änderung erneut | keiner | Nicht getestet: Der Widerruf oder die Rollenänderung müsste zwischen dem Start des Jobs und seinem Schreibvorgang eintreffen, und der Worker hat keinen Haltepunkt für einen Test. Die Prüfung läuft in `owned()`, unter den Zeilensperren von Job und Token. |
+| Agentenzugang | Kein Token in den Einrichtungsbefehlen | keiner | Nur UI-Text (AgentTokens.tsx); es wird kein Geheimnis mehr eingesetzt, wie ein Blick in die Datei zeigt. |
