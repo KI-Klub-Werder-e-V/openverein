@@ -4,5 +4,5 @@ contact_links:
     url: https://github.com/KI-Klub-Werder-e-V/openverein/security/policy
     about: Sicherheitslücken bitte vertraulich melden, nicht als öffentliches Issue.
   - name: Öffentliche Demo ausprobieren
-    url: https://klub2.ki-klub-werder.de
+    url: https://openverein.ki-klub-werder.de
     about: Probier OpenVerein ohne Installation aus, bevor Du einen Fehler meldest.

@@ -33,5 +33,5 @@ Hilfreich sind:
 ## Spielregeln beim Testen
 
 - Teste nur auf Deiner eigenen Instanz oder lokal mit dem Demoverein (`npm run seed:demo`).
-- Die öffentliche Demo unter https://klub2.ki-klub-werder.de ist für alle da: kein Lasttest, keine automatisierten Scans, keine Versuche, andere Besucher zu stören.
+- Die öffentliche Demo unter https://openverein.ki-klub-werder.de ist für alle da: kein Lasttest, keine automatisierten Scans, keine Versuche, andere Besucher zu stören.
 - Greif nicht auf echte Vereinsdaten zu und verändere oder lösche keine Daten Dritter.
