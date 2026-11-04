@@ -55,7 +55,7 @@ Lizenz: [AGPL-3.0](LICENSE). Status: frühe Entwicklung, Stück für Stück geba
 
 ## Demo ausprobieren
 
-> **Ohne Installation:** Die öffentliche Demo läuft unter **https://klub2.ki-klub-werder.de**. Sie wird regelmäßig zurückgesetzt, verschickt keine echten Mails und enthält nur erfundene Daten.
+> **Ohne Installation:** Die öffentliche Demo läuft unter **https://openverein.ki-klub-werder.de**. Sie wird regelmäßig zurückgesetzt, verschickt keine echten Mails und enthält nur erfundene Daten.
 
 Lokal lädst Du den Demoverein so:
 
@@ -113,7 +113,7 @@ Das Plugin verbindet Claude Code über den Remote-MCP-Server unter `<club>/mcp` 
 
    Ab Claude Code 2.1.275 geht das auch in einem Schritt: `/plugin install openverein --marketplace KI-Klub-Werder-e-V/openverein`.
 
-2. Gib die Adresse Deines Vereins ein, wenn Du danach gefragt wirst, zum Beispiel `https://verein.example.org`. Für die öffentliche Demo gibst Du `https://klub2.ki-klub-werder.de` ein. Später änderst Du die Adresse mit `/plugin configure openverein@openverein`; danach meldest Du Dich neu an. In der Shell gibst Du die Adresse direkt beim Installieren mit: `claude plugin install openverein@openverein --config club_url=https://verein.example.org`.
+2. Gib die Adresse Deines Vereins ein, wenn Du danach gefragt wirst, zum Beispiel `https://verein.example.org`. Für die öffentliche Demo gibst Du `https://openverein.ki-klub-werder.de` ein. Später änderst Du die Adresse mit `/plugin configure openverein@openverein`; danach meldest Du Dich neu an. In der Shell gibst Du die Adresse direkt beim Installieren mit: `claude plugin install openverein@openverein --config club_url=https://verein.example.org`.
 
 3. Anmelden: Führe `/mcp` aus, wähle `openverein` und authentifiziere Dich. Im Browser gilt:
    - Mitglieder melden sich mit ihrem E-Mail-Code im Portal an

@@ -5,15 +5,15 @@
   "description": "Club management for German e.V. clubs: members, fees, invoices, events and member portal.",
   "repository": { "url": "https://github.com/KI-Klub-Werder-e-V/openverein", "source": "github" },
   "websiteUrl": "https://github.com/KI-Klub-Werder-e-V/openverein#mit-claude-code-verbinden",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "remotes": [
     {
       "type": "streamable-http",
       "url": "https://{club_host}/mcp",
       "variables": {
         "club_host": {
-          "description": "Host name of your club's OpenVerein instance, e.g. verein.example.org. Public demo: klub2.ki-klub-werder.de",
-          "default": "klub2.ki-klub-werder.de",
+          "description": "Host name of your club's OpenVerein instance, e.g. verein.example.org. Public demo: openverein.ki-klub-werder.de",
+          "default": "openverein.ki-klub-werder.de",
           "isRequired": true
         }
       }
