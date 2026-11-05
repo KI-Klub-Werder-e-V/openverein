@@ -10,3 +10,15 @@ Dieses Plugin verbindet Claude Code über MCP mit Deinem Verein in OpenVerein. D
 ## Datenschutz
 
 Das Plugin enthält keinen Code, der auf Deinem Rechner läuft, und speichert weder Daten noch Token in einer Datei. Es nennt Claude Code genau eine Adresse, nämlich die, die Du eingegeben hast: `<club_url>/mcp`. Die OAuth-Anmeldung bewahrt Claude Code in seinem eigenen Speicher für Zugangsdaten auf. Alles, was der Agent liest oder ändert, geht nur an diese Instanz Deines Vereins. Der Verein betreibt sie und ist für die Daten verantwortlich (es gilt seine Datenschutzerklärung). Auf der Instanz wird jeder Lese- und Schreibzugriff des Agenten für die Person protokolliert, der der Zugang gehört. Sie kann den Zugriff jederzeit unter Einstellungen → Agenten widerrufen.
+
+<a id="terms"></a>
+
+## Nutzungsbedingungen
+
+Das Plugin ist freie Software unter der [AGPL-3.0](../../LICENSE) und kostenlos. Es wird ohne Gewährleistung bereitgestellt, soweit das Gesetz das zulässt (siehe Lizenz). Das Plugin selbst betreibt keinen Dienst: Es verbindet Claude Code nur mit der Instanz, deren Adresse Du eingibst. Für die Nutzung dieser Instanz gelten die Regeln des Vereins, der sie betreibt. Die öffentliche Demo unter https://openverein.ki-klub-werder.de ist zum Ausprobieren gedacht; trag dort keine echten personenbezogenen Daten ein.
+
+<a id="support"></a>
+
+## Hilfe
+
+Fehler meldest Du und Funktionen schlägst Du vor in den [Issues auf GitHub](https://github.com/KI-Klub-Werder-e-V/openverein/issues). Sicherheitslücken meldest Du bitte vertraulich über die [Sicherheitsrichtlinie](https://github.com/KI-Klub-Werder-e-V/openverein/security/policy). Fragen zu den Daten Deines Vereins beantwortet der Verein, der die Instanz betreibt.

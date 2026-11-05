@@ -10,6 +10,9 @@
   "repository": "https://github.com/KI-Klub-Werder-e-V/openverein",
   "license": "AGPL-3.0-only",
   "privacyPolicyUrl": "https://github.com/KI-Klub-Werder-e-V/openverein/blob/main/plugins/openverein/README.md#privacy",
+  "termsOfServiceUrl": "https://github.com/KI-Klub-Werder-e-V/openverein/blob/main/plugins/openverein/README.md#terms",
+  "supportUrl": "https://github.com/KI-Klub-Werder-e-V/openverein/issues",
+  "documentationUrl": "https://github.com/KI-Klub-Werder-e-V/openverein#mit-claude-code-verbinden",
   "userConfig": {
     "club_url": {
       "type": "string",
