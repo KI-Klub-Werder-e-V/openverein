@@ -2,7 +2,7 @@
 
 ## Auf einem Server installieren
 
-Du brauchst einen Linux-Server mit Docker (Compose v2), eine Domain, deren DNS auf den Server zeigt, offene Ports 80 und 443 und ein SMTP-Konto für ausgehende E-Mails.
+Du brauchst einen Linux-Server mit Docker (Compose v2), eine Domain, deren DNS auf den Server zeigt, offene Ports 80 und 443 (oder einen vorhandenen Reverse Proxy, siehe unten) und ein SMTP-Konto für ausgehende E-Mails.
 
 ```sh
 git clone https://github.com/KI-Klub-Werder-e-V/openverein.git && cd openverein
@@ -10,6 +10,55 @@ git clone https://github.com/KI-Klub-Werder-e-V/openverein.git && cd openverein
 ```
 
 Caddy holt das HTTPS-Zertifikat selbst. Öffne `https://<domain>` und lege den Verein und den ersten Admin an.
+
+### Vorhandenen Reverse Proxy (NGINX, Traefik) verwenden
+
+Hast Du schon einen Proxy, der HTTPS für Dich übernimmt, lässt sich Caddy bei der Installation abschalten. Die App lauscht dann per HTTP auf einem Port, `ovctl` verwaltet den Rest wie gewohnt (`backup`, `restore`, `update`, `doctor`).
+
+```sh
+# Proxy auf demselben Server: die App ist nur auf 127.0.0.1:3300 erreichbar
+REVERSE_PROXY=external ./ovctl install
+
+# Proxy auf einem anderen Rechner (Beispiel: 192.168.1.10): Adresse des Servers und des Proxys angeben
+REVERSE_PROXY=external APP_BIND_ADDRESS=192.168.1.20 TRUST_PROXY=192.168.1.10 ./ovctl install
+```
+
+| Variable | Bedeutung | Standard |
+|---|---|---|
+| `REVERSE_PROXY` | `caddy` oder `external` | `caddy` |
+| `APP_PORT` | HTTP-Port der App | `3300` |
+| `APP_BIND_ADDRESS` | IPv4-Adresse, auf der die App lauscht | `127.0.0.1` |
+| `TRUST_PROXY` | Adresse oder Netz Deines Proxys; nur von dort gilt `X-Forwarded-For` | `172.30.57.0/24` (nur bei `127.0.0.1`) |
+| `HTTPS_PORT` | nur nötig, wenn Dein Proxy auf einem anderen Port als 443 lauscht | – |
+
+`ovctl install` speichert die Werte in `deploy/.env`. Ohne `TRUST_PROXY` weigert sich `install`, sobald `APP_BIND_ADDRESS` nicht `127.0.0.1` ist: Die App sähe sonst nur die Adresse des Proxys und behandelte alle Besucher als einen (gemeinsames Rate-Limit, falsche Adressen im Audit-Log).
+
+Beispiel für NGINX (im HTTPS-Serverblock; `proxy_pass` auf `127.0.0.1:3300` bzw. die Adresse des Servers):
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3300;
+    proxy_http_version 1.1;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto https;
+    client_max_body_size 50m;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy same-origin always;
+}
+```
+
+Worauf Du achten musst:
+
+- **`Host $http_host`, nicht `$host`.** `$host` lässt den Port weg. Läuft Dein Proxy auf einem anderen Port als 443, stimmt der Host nicht mehr mit dem Origin des Browsers überein, und der Login endet mit „Anfragen von fremden Seiten werden abgelehnt.“
+- **`X-Forwarded-For $remote_addr`** überschreibt, was der Client mitschickt, statt es anzuhängen.
+- **Port nur für den Proxy erreichbar halten.** Bind auf `127.0.0.1` oder die interne Adresse. Docker umgeht `ufw`; bei einem offenen Port gehören Regeln in die Kette `DOCKER-USER`.
+- Caddy setzt sonst HSTS und weitere Header und komprimiert die Antworten. Im Beispiel stehen die Header; Kompression schaltest Du im Proxy ein.
+- `PUBLIC_URL` bleibt `https://<domain>`, die Cookies bleiben `Secure`. `doctor` prüft das Zertifikat über die Domain statt über `localhost`.
+- IPv6-Adressen für `APP_BIND_ADDRESS` werden nicht unterstützt.
+
+Eine bestehende Installation stellst Du um, indem Du `REVERSE_PROXY=external`, `APP_BIND_ADDRESS`, `APP_PORT` und `TRUST_PROXY` in `deploy/.env` einträgst, `docker stop` für den laufenden Caddy-Container ausführst und `./ovctl update` startest.
 
 **DATA_KEY** in `deploy/.env` verschlüsselt die Bankdaten. Die Datenbank speichert einen Fingerabdruck davon. Ein Server, der mit einem anderen Schlüssel startet, hält mit „DATA_KEY passt nicht zu dieser Datenbank“ an, statt Bankdaten mit einem zweiten Schlüssel zu schreiben (zum Beispiel, wenn Du ein Backup auf einen neuen Server zurückspielst: Kopiere vorher den alten `DATA_KEY` in `deploy/.env`). Ohne den Schlüssel lassen sich die IBANs in einem Backup nicht lesen. Bewahre eine Kopie getrennt von den Backups auf (Passwortmanager, versiegelter Umschlag beim Vorstand), nicht auf derselben Festplatte.
 

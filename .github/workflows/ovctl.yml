@@ -3,10 +3,10 @@
 name: ovctl round trips
 on:
   pull_request:
-    paths: [ovctl, deploy/**, Dockerfile, scripts/ovctl-roundtrip.sh, migrations/**]
+    paths: [ovctl, deploy/**, Dockerfile, scripts/ovctl-roundtrip.sh, scripts/ovctl-external-check.sh, migrations/**]
   push:
     branches: [main]
-    paths: [ovctl, deploy/**, Dockerfile, scripts/ovctl-roundtrip.sh, migrations/**]
+    paths: [ovctl, deploy/**, Dockerfile, scripts/ovctl-roundtrip.sh, scripts/ovctl-external-check.sh, migrations/**]
   schedule: [{ cron: '17 3 * * 1' }]
   workflow_dispatch:
 
@@ -17,4 +17,5 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with: { fetch-depth: 0 }
+      - run: scripts/ovctl-external-check.sh
       - run: scripts/ovctl-roundtrip.sh
