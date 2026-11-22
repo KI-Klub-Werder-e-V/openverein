@@ -34,3 +34,19 @@ test('events: calendar, weekly training, RSVP and cancelling one date', async ({
   expect(list).toHaveLength(0);
   void m;
 });
+
+test('events: birthday layer can be switched on and off again', async ({ page }) => {
+  await signIn(page);
+  const today = new Date();
+  // Without a calendar the page shows only its empty state, not the month grid.
+  await page.request.post('/api/v1/calendars', { data: { name: 'Geburtstagstest' } });
+  const m = await (await page.request.post('/api/v1/members', { data: { firstName: 'Bea', lastName: 'Geburtstag', joinDate: '2024-01-01', birthDate: `${today.getUTCFullYear() - 30}-${today.toISOString().slice(5, 10)}` } })).json();
+  expect(m.id).toBeTruthy();
+  await page.goto('/termine');
+  const box = page.getByLabel('Geburtstage');
+  const cake = page.getByText('Bea Geburtstag').first();
+  await box.check();
+  await expect(cake).toBeVisible();
+  await box.uncheck();
+  await expect(cake).toBeHidden();
+});
