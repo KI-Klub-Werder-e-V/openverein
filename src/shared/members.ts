@@ -168,6 +168,8 @@ export const memberListQuery = z.object({
   /** active SEPA mandate or none */
   mandate: z.enum(['active', 'none']).optional(),
   household: z.enum(['yes', 'no']).optional(),
+  /** e-mail address: present (and deliverable), missing, or blocked after a bounce or by hand */
+  email: z.enum(['present', 'missing', 'undeliverable']).optional(),
   /** open receivables (open or partly paid invoices) */
   openBalance: z.stringbool().optional(),
   /** one custom field filter: `<field id>:<value>` (text matches partly, others exactly) */
