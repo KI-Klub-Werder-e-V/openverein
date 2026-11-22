@@ -12,9 +12,24 @@ BACKUP_KEEP="${BACKUP_KEEP:-14}"
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'Fehler: %s\n' "$*" >&2; exit 1; }
-dc() { docker compose --project-directory "$DEPLOY" -f "$DEPLOY/compose.yml" --env-file "$ENV_FILE" "$@"; }
-need_env() { [ -f "$ENV_FILE" ] || die "deploy/.env fehlt. Zuerst: ./ovctl install"; }
-env_get() { grep -E "^$1=" "$ENV_FILE" | tail -1 | cut -d= -f2-; }
+env_get() { grep -E "^$1=" "$ENV_FILE" | tail -1 | cut -d= -f2- || true; }
+# REVERSE_PROXY=caddy (Standard) oder external. `install` schreibt den Wert nach deploy/.env, damit jeder spätere Aufruf
+# (auch per cron) denselben Stack verwendet. Vor der Installation zählt die Umgebungsvariable.
+proxy_mode() {
+  local mode="${REVERSE_PROXY:-}"
+  if [ -f "$ENV_FILE" ]; then mode="$(env_get REVERSE_PROXY)"; fi
+  printf '%s\n' "${mode:-caddy}"
+}
+# Nicht in einer Befehlsersetzung aufrufen: `die` beendet dort nur die Subshell.
+check_proxy_mode() {
+  case "$(proxy_mode)" in caddy|external) ;; *) die "REVERSE_PROXY muss caddy oder external sein." ;; esac
+}
+dc() {
+  local -a files=(-f "$DEPLOY/compose.yml")
+  if [ "$(proxy_mode)" = external ]; then files+=(-f "$DEPLOY/compose.external.yml"); fi
+  docker compose --project-directory "$DEPLOY" "${files[@]}" --env-file "$ENV_FILE" "$@"
+}
+need_env() { [ -f "$ENV_FILE" ] || die "deploy/.env fehlt. Zuerst: ./ovctl install"; check_proxy_mode; }
 
 usage() {
   cat <<'USAGE'
@@ -31,6 +46,19 @@ cmd_install() {
   command -v docker >/dev/null || die "Docker ist nicht installiert."
   command -v openssl >/dev/null || die "openssl fehlt."
   [ -f "$ENV_FILE" ] && die "deploy/.env gibt es schon. Diese Installation läuft bereits; ./ovctl doctor prüft sie."
+  check_proxy_mode
+  local mode app_port="${APP_PORT:-3300}" bind="${APP_BIND_ADDRESS:-127.0.0.1}" trust="${TRUST_PROXY:-}"
+  mode="$(proxy_mode)"
+  if [ "$mode" = external ]; then
+    [[ "$app_port" =~ ^[0-9]+$ ]] && [ "$app_port" -ge 1 ] && [ "$app_port" -le 65535 ] || die "APP_PORT muss eine Portnummer sein."
+    [[ "$bind" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || die "APP_BIND_ADDRESS muss eine IPv4-Adresse sein (Standard 127.0.0.1)."
+    # Ein Proxy auf demselben Host erscheint der App mit der Adresse des Docker-Netzes. Ein Proxy auf einem anderen Rechner
+    # mit seiner eigenen Adresse; ohne sie würde die App X-Forwarded-For ignorieren und alle Nutzer als einen behandeln.
+    if [ -z "$trust" ]; then
+      [ "$bind" = 127.0.0.1 ] && trust=172.30.57.0/24 || die "TRUST_PROXY fehlt: Setze die IP-Adresse (oder das Netz) Deines Reverse Proxys, z. B. TRUST_PROXY=192.168.1.10."
+    fi
+    [[ "$trust" =~ ^[0-9a-fA-F:./,]+$ ]] || die "TRUST_PROXY darf nur IP-Adressen oder Netze (kommagetrennt) enthalten."
+  fi
   local domain="${DOMAIN:-}" smtp="${SMTP_URL:-}" from="${MAIL_FROM:-}"
   [ -n "$domain" ] || read -rp "Domain (z. B. verein.example.org): " domain
   [ -n "$smtp" ] || read -rp "Mailserver (smtp://benutzer:passwort@host:587): " smtp
@@ -45,6 +73,12 @@ cmd_install() {
     say "MAIL_FROM=\"$from\""
     say "POSTGRES_PASSWORD=$(openssl rand -hex 24)"
     say "DATA_KEY=$(openssl rand -base64 32)"
+    say "REVERSE_PROXY=$mode"
+    if [ "$mode" = external ]; then
+      say "APP_PORT=$app_port"
+      say "APP_BIND_ADDRESS=$bind"
+      say "TRUST_PROXY=$trust"
+    fi
     [ -n "${HTTP_PORT:-}" ] && say "HTTP_PORT=$HTTP_PORT"
     [ -n "${HTTPS_PORT:-}" ] && say "HTTPS_PORT=$HTTPS_PORT" && say "PUBLIC_PORT_SUFFIX=:$HTTPS_PORT"
     [ -n "${COMPOSE_PROJECT_NAME:-}" ] && say "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
@@ -53,7 +87,11 @@ cmd_install() {
   dc up -d --build
   wait_healthy
   say ""
-  say "OpenVerein läuft: https://$domain${HTTPS_PORT:+:$HTTPS_PORT}"
+  if [ "$mode" = external ]; then
+    say "OpenVerein läuft auf $bind:$app_port (HTTP). Richte Deinen Reverse Proxy darauf ein; öffentlich erreichbar unter https://$domain"
+  else
+    say "OpenVerein läuft: https://$domain${HTTPS_PORT:+:$HTTPS_PORT}"
+  fi
   say "Öffne die Adresse und lege Deinen Verein und Dein Admin-Konto an."
   say "Wichtig: Bewahre DATA_KEY aus deploy/.env getrennt von den Sicherungen auf (z. B. im Passwortmanager)."
 }
@@ -173,7 +211,9 @@ cmd_doctor() {
   ok() { say "  ok    $*"; }
   warn() { say "  WARN  $*"; bad=1; }
   say "OpenVerein doctor"
-  for s in caddy app db; do
+  local services=(caddy app db)
+  [ "$(proxy_mode)" = external ] && services=(app db)
+  for s in "${services[@]}"; do
     if [ -n "$(dc ps --status running -q "$s" 2>/dev/null)" ]; then ok "Dienst $s läuft"; else warn "Dienst $s läuft nicht (./ovctl logs)"; fi
   done
   if dc exec -T app node -e "fetch('http://localhost:3300/api/v1/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))" 2>/dev/null; then ok "Server und Datenbank antworten"; else warn "Server antwortet nicht"; fi
@@ -188,7 +228,13 @@ cmd_doctor() {
   else warn "Letzte Sicherung ist älter als 25 Stunden: $(basename "$last")"; fi
   local domain port expiry
   domain="$(env_get DOMAIN)"; port="$(env_get HTTPS_PORT)"
-  expiry="$(echo | openssl s_client -connect "localhost:${port:-443}" -servername "$domain" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2 || true)"
+  local cert_host=localhost
+  if [ "$(proxy_mode)" = external ]; then
+    # Das Zertifikat gehört dem externen Proxy; ihn erreicht man über die Domain, nicht über localhost.
+    cert_host="$domain"
+    say "  info  Externer Reverse Proxy: HTTP auf $(env_get APP_BIND_ADDRESS):$(env_get APP_PORT), nur für den Proxy erreichbar halten"
+  fi
+  expiry="$(echo | timeout 8 openssl s_client -connect "${cert_host}:${port:-443}" -servername "$domain" 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2 || true)"
   if [ -z "$expiry" ]; then warn "Kein Zertifikat abrufbar für $domain"
   elif [ "$(( ($(date -d "$expiry" +%s) - $(date +%s)) / 86400 ))" -lt 14 ]; then warn "Zertifikat läuft bald ab: $expiry"
   else ok "Zertifikat gültig bis $expiry"; fi

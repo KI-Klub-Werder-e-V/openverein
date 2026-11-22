@@ -1,0 +1,11 @@
+# Nur mit REVERSE_PROXY=external (ovctl wählt die Datei selbst): Caddy wird nicht gestartet, die App
+# lauscht per HTTP auf APP_BIND_ADDRESS:APP_PORT und wartet auf einen vorhandenen Reverse Proxy (z. B. NGINX).
+services:
+  caddy:
+    profiles: ["internal-caddy"]
+  app:
+    ports:
+      - "${APP_BIND_ADDRESS:-127.0.0.1}:${APP_PORT:-3300}:3300"
+    environment:
+      # Nur dieser Proxy darf X-Forwarded-For setzen. ovctl install schreibt den Wert nach deploy/.env.
+      TRUST_PROXY: ${TRUST_PROXY:-172.30.57.0/24}
