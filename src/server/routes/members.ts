@@ -18,6 +18,7 @@ import {
   type MemberStatus,
 } from '../../shared/members.ts';
 import { audit, diffOf } from '../audit.ts';
+import { emailHash } from '../mail/worker.ts';
 import { assertGroup, BULK_INLINE_MAX, memberBulk } from '../members/bulk.ts';
 import { jobDto, jobSchema } from './jobs.ts';
 import { memberListPdf, vcard } from '../members/lists.ts';
@@ -72,7 +73,23 @@ function assertWritable(actor: Actor, body: Record<string, unknown>) {
   }
 }
 
-const listFilter = (q: z.infer<typeof memberListQuery>, actor: Actor, today: string) => (db: Db) => {
+/** People of the club whose e-mail address is blocked after a bounce or by hand (the hash is computed here, not in SQL). */
+async function undeliverablePeople(db: Db, organizationId: string) {
+  const blocked = new Set((await db.selectFrom('suppression').select('email_hash').where('organization_id', '=', organizationId).where('reason', 'in', ['bounce', 'manual']).execute()).map((x) => x.email_hash));
+  if (!blocked.size) return [];
+  const people = await db.selectFrom('person').select(['id', 'email']).where('organization_id', '=', organizationId).where('email', 'is not', null).execute();
+  return people.filter((p) => p.email!.trim() && blocked.has(emailHash(p.email!))).map((p) => p.id);
+}
+
+const listFilter = async (db: Db, q: z.infer<typeof memberListQuery>, actor: Actor, today: string) => {
+  // The e-mail facet reveals addresses (field right) and delivery problems (communication); see listQuery for the others.
+  if (q.email && restrictedFields(actor).has('email')) throw forbidden('members.field.email');
+  if (q.email === 'undeliverable' && !can(actor, 'communication', 'read')) throw forbidden('communication:read');
+  const undeliverable = q.email === 'present' || q.email === 'undeliverable' ? await undeliverablePeople(db, actor.organizationId) : [];
+  return listQuery(q, actor, today, undeliverable)(db);
+};
+
+const listQuery = (q: z.infer<typeof memberListQuery>, actor: Actor, today: string, undeliverable: string[]) => (db: Db) => {
   let query = db
     .selectFrom('member')
     .innerJoin('person', 'person.id', 'member.person_id')
@@ -106,6 +123,12 @@ const listFilter = (q: z.infer<typeof memberListQuery>, actor: Actor, today: str
     query = query.where(q.mandate === 'active' ? has : sql<boolean>`not ${has}`);
   }
   if (q.household) query = query.where('member.household_id', q.household === 'yes' ? 'is not' : 'is', null);
+  // present, missing and undeliverable split the members: an address blocked after a bounce counts as undeliverable only.
+  const hasEmail = sql<boolean>`nullif(trim(person.email), '') is not null`;
+  const blocked = undeliverable.length ? sql<boolean>`person.id = any(${undeliverable}::uuid[])` : sql<boolean>`false`;
+  if (q.email === 'present') query = query.where(sql<boolean>`${hasEmail} and not ${blocked}`);
+  if (q.email === 'missing') query = query.where(sql<boolean>`not ${hasEmail}`);
+  if (q.email === 'undeliverable') query = query.where(blocked);
   if (q.openBalance) query = query.where(sql<boolean>`exists (select 1 from invoice i where (i.member_id = member.id or i.recipient_person_id = person.id) and i.status in ('open', 'partially_paid') and i.kind in ('membership', 'other', 'dunning_fee'))`);
   if (q.cf) {
     const [id, value] = [q.cf.slice(0, 36), q.cf.slice(37)];
@@ -160,12 +183,12 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
     const raw = req.query.cursor ? Buffer.from(req.query.cursor, 'base64url').toString() : '0';
     const offset = /^\d{1,9}$/.test(raw) ? Number(raw) : 0;
     const order = { name: ['person.last_name', 'person.first_name', 'person.company_name'], number: ['member.membership_number'], joinDate: ['member.join_date'] }[req.query.sort];
-    let query = listFilter(req.query, actor, today)(db).select([...memberColumns, sql<number>`count(*) over()`.as('total')]);
+    let query = (await listFilter(db, req.query, actor, today)).select([...memberColumns, sql<number>`count(*) over()`.as('total')]);
     for (const col of order) query = query.orderBy(sql.ref(col), (ob) => ob.asc().nullsLast());
     const rows = await query.orderBy('member.id').limit(req.query.limit).offset(offset).execute();
     const groups = await currentGroups(db, rows.map((r) => r.id), today);
     const hidden = restrictedFields(actor);
-    const total = Number(rows[0]?.total ?? (offset === 0 ? 0 : (await listFilter(req.query, actor, today)(db).select(sql<number>`count(*)`.as('n')).executeTakeFirstOrThrow()).n));
+    const total = Number(rows[0]?.total ?? (offset === 0 ? 0 : (await (await listFilter(db, req.query, actor, today)).select(sql<number>`count(*)`.as('n')).executeTakeFirstOrThrow()).n));
     const next = offset + rows.length < total ? Buffer.from(String(offset + rows.length)).toString('base64url') : null;
     return { items: rows.map((r) => toListItem(r, groups.get(r.id) ?? [], hidden)), total, nextCursor: next };
   });
@@ -174,7 +197,7 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
     const actor = requireActor(req);
     requirePermission(actor, 'members', 'read');
     const today = await orgToday(db, actor.organizationId);
-    const rows = await listFilter({ ...req.query, limit: 5000 }, actor, today)(db).select(['member.id', 'person.kind', 'person.first_name', 'person.last_name', 'person.company_name']).orderBy('person.last_name').orderBy('person.first_name').orderBy('member.id').limit(5001).execute();
+    const rows = await (await listFilter(db, { ...req.query, limit: 5000 }, actor, today)).select(['member.id', 'person.kind', 'person.first_name', 'person.last_name', 'person.company_name']).orderBy('person.last_name').orderBy('person.first_name').orderBy('member.id').limit(5001).execute();
     if (rows.length > 5000) throw new Problem(422, 'too-many', 'Mehr als 5.000 Treffer.', 'Grenze den Filter weiter ein.');
     return { ids: rows.map((r) => r.id), total: rows.length, sample: rows.slice(0, 5).map((r) => displayName({ kind: r.kind, firstName: r.first_name, lastName: r.last_name, companyName: r.company_name })) };
   });
@@ -184,7 +207,7 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
     requirePermission(actor, 'members', 'read');
     const today = await orgToday(db, actor.organizationId);
     const hidden = restrictedFields(actor);
-    const rows = await listFilter({ ...req.query, limit: 0 }, actor, today)(db).select(memberColumns).orderBy('person.last_name').orderBy('person.first_name').execute();
+    const rows = await (await listFilter(db, { ...req.query, limit: 0 }, actor, today)).select(memberColumns).orderBy('person.last_name').orderBy('person.first_name').execute();
     const groups = await currentGroups(db, rows.map((r) => r.id), today);
     const columns: [string, string, (r: (typeof rows)[number]) => unknown][] = [
       ['Mitgliedsnummer', '', (r) => r.membership_number],
@@ -214,7 +237,7 @@ export const memberRoutes: FastifyPluginAsyncZod = async (app) => {
   const exportQuery = memberListQuery.omit({ cursor: true, limit: true });
   async function exportRows(actor: Actor, query: z.infer<typeof exportQuery>) {
     const today = await orgToday(db, actor.organizationId);
-    const rows = await listFilter({ ...query, limit: 0 }, actor, today)(db).select(memberColumns).orderBy('person.last_name').orderBy('person.first_name').execute();
+    const rows = await (await listFilter(db, { ...query, limit: 0 }, actor, today)).select(memberColumns).orderBy('person.last_name').orderBy('person.first_name').execute();
     const groups = await currentGroups(db, rows.map((r) => r.id), today);
     const org = await db.selectFrom('organization').select('name').where('id', '=', actor.organizationId).executeTakeFirstOrThrow();
     return { today, rows, groups, org: org.name, hidden: restrictedFields(actor) };

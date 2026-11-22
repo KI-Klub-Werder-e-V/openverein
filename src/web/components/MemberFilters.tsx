@@ -16,6 +16,7 @@ export const FILTERS = {
   austritt_bis: 'exitTo',
   mandat: 'mandate',
   haushalt: 'household',
+  email: 'email',
   offen: 'openBalance',
   feld: 'cf',
 } as const;
@@ -103,7 +104,7 @@ export function FilterSheet({ me, params, onApply, onClose }: { me: Me; params: 
     await qc.invalidateQueries({ queryKey: ['member-views'] });
   }
   // Facets only for data the user may see (the API refuses the others).
-  const may = { age: !me.restricted.includes('birth_date'), mandate: (me.permissions.sepa ?? 'none') !== 'none', open: (me.permissions.invoices ?? 'none') !== 'none', pay: (me.permissions.fees ?? 'none') !== 'none' };
+  const may = { age: !me.restricted.includes('birth_date'), mandate: (me.permissions.sepa ?? 'none') !== 'none', open: (me.permissions.invoices ?? 'none') !== 'none', pay: (me.permissions.fees ?? 'none') !== 'none', email: !me.restricted.includes('email'), undeliverable: (me.permissions.communication ?? 'none') !== 'none' };
 
   return (
     <Sheet title="Filter" open onClose={onClose}>
@@ -140,8 +141,20 @@ export function FilterSheet({ me, params, onApply, onClose }: { me: Me; params: 
         </fieldset>
         <div className="form-row">
           <div className="field"><label htmlFor="f-hh">Haushalt</label><select id="f-hh" name="haushalt" className="select" style={{ width: '100%' }} defaultValue={v('haushalt')}><option value="">egal</option><option value="yes">im Haushalt</option><option value="no">einzeln</option></select></div>
-          {may.open && <label className="check" style={{ alignSelf: 'end' }}><input type="checkbox" name="offen" defaultChecked={v('offen') === 'true'} /> Mit offenen Posten</label>}
+          {may.email && (
+            <div className="field">
+              <label htmlFor="f-email">E-Mail-Adresse</label>
+              <select id="f-email" name="email" className="select" style={{ width: '100%' }} defaultValue={v('email')}>
+                <option value="">egal</option>
+                <option value="present">vorhanden</option>
+                <option value="missing">fehlt</option>
+                {may.undeliverable && <option value="undeliverable">unzustellbar</option>}
+              </select>
+              {may.undeliverable && <div className="meta">Unzustellbar: nach einem Bounce oder von Hand gesperrt; „vorhanden“ zählt sie nicht mit.</div>}
+            </div>
+          )}
         </div>
+        {may.open && <label className="check"><input type="checkbox" name="offen" defaultChecked={v('offen') === 'true'} /> Mit offenen Posten</label>}
         {fields && fields.filter((f) => !f.archived).length > 0 && (
           <div className="form-row">
             <div className="field"><label htmlFor="f-field">Eigenes Feld</label><select id="f-field" className="select" style={{ width: '100%' }} value={fieldId} onChange={(e) => setFieldId(e.target.value)}><option value="">–</option>{fields.filter((f) => !f.archived).map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}</select></div>
