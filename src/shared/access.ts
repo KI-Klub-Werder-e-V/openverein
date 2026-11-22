@@ -161,6 +161,8 @@ export const ACTION_LABEL: Record<string, string> = {
   'mandate.expired': 'SEPA-Mandat abgelaufen',
   'mandate.revoked': 'SEPA-Mandat widerrufen',
   'mandate.activated': 'SEPA-Mandat aktiviert',
+  'mandate.requested': 'SEPA-Mandat angefordert',
+  'mandate.notified': 'SEPA-Mandat mitgeteilt',
   'member.fee_assigned': 'Beitrag zugeordnet',
   'member.fee_ended': 'Beitrag beendet',
   'member.payment_method': 'Zahlungsart geändert',

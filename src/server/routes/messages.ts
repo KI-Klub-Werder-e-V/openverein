@@ -36,7 +36,7 @@ const messageInput = z.object({
 
 const messageDto = z.object({
   id: z.uuid(),
-  kind: z.enum(['free', 'invoices', 'donation_receipts']),
+  kind: z.enum(['free', 'invoices', 'donation_receipts', 'mandate_forms', 'mandate_notices']),
   category: z.enum(['notice', 'newsletter']),
   subject: z.string(),
   body: z.string(),
@@ -112,7 +112,7 @@ export async function resolveRecipients(db: Db, actor: Actor, f: z.infer<typeof 
 }
 
 
-export async function createMessage(tx: Db, actor: Actor, v: { kind: 'free' | 'invoices' | 'donation_receipts'; category: 'notice' | 'newsletter'; subject: string; body: string; filter: unknown }, recipients: { personId: string; memberId: string | null; email: string; invoiceId?: string; donationReceiptId?: string }[]) {
+export async function createMessage(tx: Db, actor: Actor, v: { kind: 'free' | 'invoices' | 'donation_receipts' | 'mandate_forms' | 'mandate_notices'; category: 'notice' | 'newsletter'; subject: string; body: string; filter: unknown }, recipients: { personId: string; memberId: string | null; email: string; invoiceId?: string; donationReceiptId?: string }[]) {
   const m = await tx
     .insertInto('message')
     .values({ organization_id: actor.organizationId, kind: v.kind, category: v.category, subject: v.subject, body: v.body, recipient_filter: JSON.stringify(v.filter), created_by: actor.userId, created_by_label: actor.kind === 'token' ? `API: ${actor.name}` : actor.name })
@@ -252,7 +252,7 @@ export const messageRoutes: FastifyPluginAsyncZod = async (app) => {
   const templateId = z.object({ id: z.union([z.enum(TEMPLATE_KEYS), z.uuid()]) });
   const isKey = (id: string): id is SystemTemplateKey => id in SYSTEM_TEMPLATES;
 
-  app.get('/mail-templates', { schema: { tags, summary: 'Vorlagen: eigene und System-Texte (Rechnung, Mahnung, Einladung)', response: { 200: z.array(templateDto) } } }, async (req) => {
+  app.get('/mail-templates', { schema: { tags, summary: 'Vorlagen: eigene und System-Texte (Rechnung, Mahnung, Einladung, SEPA-Mandat)', response: { 200: z.array(templateDto) } } }, async (req) => {
     const actor = requireActor(req);
     requirePermission(actor, 'communication', 'read');
     const rows = await db.selectFrom('mail_template').selectAll().where('organization_id', '=', actor.organizationId).orderBy('name').execute();

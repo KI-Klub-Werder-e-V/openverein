@@ -18,6 +18,11 @@ export const PLACEHOLDERS = {
   austritt: 'Austrittsdatum (nur bei Kündigungen)',
   bestaetigung: 'Nummer der Zuwendungsbestätigung (nur beim Versand von Bestätigungen)',
   jahre: 'Lebensjahre oder Jahre im Verein (nur bei Glückwünschen)',
+  mandatsreferenz: 'Mandatsreferenz (nur beim Mitteilen des SEPA-Mandats)',
+  glaeubiger_id: 'Gläubiger-ID des Vereins (nur beim Mitteilen des SEPA-Mandats)',
+  kontoinhaber: 'Kontoinhaber:in des Mandats (nur beim Mitteilen des SEPA-Mandats)',
+  iban: 'IBAN des Mandats, bis auf die letzten vier Ziffern verdeckt (nur beim Mitteilen des SEPA-Mandats)',
+  unterschrieben: 'Unterschriftsdatum des Mandats (nur beim Mitteilen des SEPA-Mandats)',
 } as const;
 /** Fixed placeholders plus `custom.<key>` for the club's own (non-sensitive) fields. */
 export type PlaceholderValues = Partial<Record<keyof typeof PLACEHOLDERS, string>> & { [custom: `custom.${string}`]: string };
@@ -50,7 +55,7 @@ export function textToHtml(text: string) {
     .join('\n');
 }
 
-export type SystemTemplateKey = 'invoice' | 'dunning' | 'invitation' | 'login_code' | 'change_decided' | 'resignation_received' | 'application_received' | 'application_accepted' | 'application_rejected' | 'expense_decided' | 'donation_receipt' | 'birthday' | 'anniversary';
+export type SystemTemplateKey = 'invoice' | 'dunning' | 'invitation' | 'login_code' | 'change_decided' | 'resignation_received' | 'application_received' | 'application_accepted' | 'application_rejected' | 'expense_decided' | 'donation_receipt' | 'birthday' | 'anniversary' | 'mandate_request' | 'mandate_notice';
 export const SYSTEM_TEMPLATES: Record<SystemTemplateKey, { name: string; subject: string; body: string }> = {
   invoice: {
     name: 'Rechnung',
@@ -111,6 +116,16 @@ export const SYSTEM_TEMPLATES: Record<SystemTemplateKey, { name: string; subject
     name: 'Aufnahme abgelehnt',
     subject: 'Dein Aufnahmeantrag bei {{verein}}',
     body: 'Hallo {{vorname}},\n\nleider können wir Deinen Antrag nicht annehmen. {{entscheidung}}\n\nViele Grüße\n{{verein}}',
+  },
+  mandate_request: {
+    name: 'SEPA-Mandat anfordern',
+    subject: 'Bitte um ein SEPA-Lastschriftmandat',
+    body: 'Hallo {{vorname}},\n\nfür den Einzug Deiner Beiträge brauchen wir ein neues SEPA-Lastschriftmandat, zum Beispiel weil sich Deine Bankverbindung geändert hat. Bitte trage im angehängten Formular Deine Bankverbindung ein, unterschreib es und schick es uns zurück. Die Anschrift steht unten auf dem Formular.\n\nDie Mandatsreferenz teilen wir Dir mit, bevor wir zum ersten Mal abbuchen.\n\nViele Grüße\n{{verein}}',
+  },
+  mandate_notice: {
+    name: 'SEPA-Mandat mitteilen',
+    subject: 'Dein SEPA-Lastschriftmandat bei {{verein}}',
+    body: 'Hallo {{vorname}},\n\nwir ziehen Deine Beiträge per SEPA-Lastschrift ein. Hier sind die Angaben zu Deinem Mandat; bitte bewahre sie auf:\n\nGläubiger-ID: {{glaeubiger_id}}\nMandatsreferenz: {{mandatsreferenz}}\nKontoinhaber:in: {{kontoinhaber}}\nIBAN: {{iban}}\nUnterschrieben am: {{unterschrieben}}\n\nVor jeder Lastschrift kündigen wir Dir Betrag und Datum an. Stimmt etwas nicht oder hat sich Deine Bankverbindung geändert? Dann antworte einfach auf diese E-Mail.\n\nViele Grüße\n{{verein}}',
   },
   resignation_received: {
     name: 'Kündigung bestätigt',

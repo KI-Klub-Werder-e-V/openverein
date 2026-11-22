@@ -163,7 +163,7 @@ export function MemberSheet({ id, onClose, canWrite, permissions = {} }: { id: s
             </section>
           )}
           {permissions.sepa && permissions.sepa !== 'none' && (
-            <MemberMandate memberId={m.id} holder={displayName(m).split(', ').reverse().join(' ')} canWrite={permissions.sepa === 'write'} />
+            <MemberMandate memberId={m.id} holder={displayName(m).split(', ').reverse().join(' ')} canWrite={permissions.sepa === 'write'} canMail={permissions.communication === 'write'} />
           )}
           {permissions.fees && permissions.fees !== 'none' && (
             <MemberFees memberId={m.id} joinDate={m.joinDate} canWrite={permissions.fees === 'write'} canSeeInvoices={!!permissions.invoices && permissions.invoices !== 'none'} />
