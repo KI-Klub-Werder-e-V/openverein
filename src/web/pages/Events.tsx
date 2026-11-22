@@ -46,6 +46,8 @@ export function Events({ me }: { me: Me }) {
   const calendars = useQuery({ queryKey: ['calendars'], queryFn: () => api<Calendar[]>('/calendars') });
   const events = useQuery({ queryKey: ['events', from, to], queryFn: () => api<Occurrence[]>(`/events?from=${from}&to=${to}`) });
   const birthdays = useQuery({ queryKey: ['birthdays', from, to], queryFn: () => api<{ memberId: string; name: string; date: string; age: number }[]>(`/birthdays?from=${from}&to=${to}`), enabled: showBirthdays && me.permissions.members !== 'none' });
+  // A disabled query keeps its cached data, so the layer must be cut off here, not just not fetched.
+  const birthdayList = showBirthdays ? (birthdays.data ?? []) : [];
   const byDate = useMemo(() => {
     const m = new Map<string, Occurrence[]>();
     for (const o of events.data ?? []) m.set(o.date, [...(m.get(o.date) ?? []), o]);
@@ -98,11 +100,11 @@ export function Events({ me }: { me: Me }) {
         <div className="table-wrap"><div className="empty-state"><h3>Noch kein Kalender.</h3><p>Leg zuerst einen Kalender an, zum Beispiel „Training“ für alle oder „Vorstand“ nur für den Vorstand.</p>{canWrite && <button className="btn btn-primary" onClick={() => setManaging(true)}>Kalender anlegen</button>}</div></div>
       ) : view === 'liste' ? (
         <div className="agenda">
-          {[...byDate.keys(), ...(birthdays.data ?? []).map((b) => b.date)].filter((v, i, a) => a.indexOf(v) === i).sort().map((d) => (
+          {[...byDate.keys(), ...birthdayList.map((b) => b.date)].filter((v, i, a) => a.indexOf(v) === i).sort().map((d) => (
             <section key={d} className="agenda-day" aria-label={longDate(d)}>
               <h3 data-today={d === today}>{longDate(d)}</h3>
               <ul>
-                {(birthdays.data ?? []).filter((b) => b.date === d).map((b) => <li key={b.memberId} className="agenda-item muted"><Cake size={14} aria-hidden /> {b.name} wird {b.age}</li>)}
+                {birthdayList.filter((b) => b.date === d).map((b) => <li key={b.memberId} className="agenda-item muted"><Cake size={14} aria-hidden /> {b.name} wird {b.age}</li>)}
                 {(byDate.get(d) ?? []).map((o) => (
                   <li key={o.eventId + o.date}>
                     <button className="agenda-item" style={courtVar(o.color)} onClick={() => open(o)}>
@@ -124,7 +126,7 @@ export function Events({ me }: { me: Me }) {
           {grid.map((d) => (
             <div key={d} className="month-day" data-other={d.slice(0, 7) !== month} data-today={d === today} onDoubleClick={() => canWrite && setCreating(d)}>
               <span className="month-date num"><span className="sr-only">{WEEKDAYS[(new Date(`${d}T00:00:00Z`).getUTCDay() + 6) % 7]}, </span>{Number(d.slice(8))}</span>
-              {(birthdays.data ?? []).filter((b) => b.date === d).map((b) => <span key={b.memberId} className="month-birthday" title={`${b.name} wird ${b.age}`}><Cake size={12} aria-hidden /> {b.name.split(', ').reverse().join(' ')}</span>)}
+              {birthdayList.filter((b) => b.date === d).map((b) => <span key={b.memberId} className="month-birthday" title={`${b.name} wird ${b.age}`}><Cake size={12} aria-hidden /> {b.name.split(', ').reverse().join(' ')}</span>)}
               {(byDate.get(d) ?? []).slice(0, 4).map((o) => (
                 <button key={o.eventId} className="month-event" style={courtVar(o.color)} onClick={() => open(o)}>
                   {!o.allDay && <span className="num">{time(o.startsAt)}</span>} {o.title}
