@@ -11,6 +11,7 @@ import { Field } from '../components/Field.tsx';
 import { GroupBadge } from '../components/GroupBadge.tsx';
 import { MemberSheet } from '../components/MemberSheet.tsx';
 import { PageHead } from '../components/PageHead.tsx';
+import { closeMenu, MandateLetters, MandateMenu, type MandateLetterKind } from '../components/MandateLetters.tsx';
 import { Sheet } from '../components/Sheet.tsx';
 import { StatusBadge } from '../components/StatusBadge.tsx';
 import { api, ApiError } from '../lib/api.ts';
@@ -173,6 +174,7 @@ export function Members({ me }: { me: Me }) {
           ids={[...selected]}
           sample={allSample ?? rows.filter((r) => selected.has(r.id)).slice(0, 5).map(displayName)}
           canMail={me.permissions.communication === 'write'}
+          canSepa={me.permissions.sepa === 'write'}
           onDone={(msg) => { setSelected(new Set()); setAllSample(undefined); setBulkResult(msg); void list.refetch(); }}
         />
       )}
@@ -243,11 +245,12 @@ export function Members({ me }: { me: Me }) {
 
 type BulkAction = { action: 'add_to_group' | 'end_group'; groupId: string; groupName: string; date: string };
 
-function BulkBar({ ids, sample, canMail, onDone }: { ids: string[]; sample: string[]; canMail: boolean; onDone: (result: string) => void }) {
+function BulkBar({ ids, sample, canMail, canSepa, onDone }: { ids: string[]; sample: string[]; canMail: boolean; canSepa: boolean; onDone: (result: string) => void }) {
   const { data: groups } = useGroups();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [pending, setPending] = useState<BulkAction>();
+  const [mandate, setMandate] = useState<MandateLetterKind>();
   const [error, setError] = useState<string>();
 
   function ask(e: FormEvent<HTMLFormElement>) {
@@ -274,7 +277,17 @@ function BulkBar({ ids, sample, canMail, onDone }: { ids: string[]; sample: stri
   const more = ids.length - sample.length;
   return (
     <>
-      {pending ? (
+      {mandate ? (
+        <div className="bulkbar" role="region" aria-label={mandate === 'request' ? 'SEPA-Mandat anfordern' : 'SEPA-Mandat mitteilen'}>
+          <MandateLetters
+            kind={mandate}
+            memberIds={ids}
+            prompt={`${ids.length === 1 ? 'Einem Mitglied' : `${ids.length} Mitgliedern`} ${mandate === 'request' ? 'das Mandatsformular schicken' : 'die Daten ihres Mandats mitteilen'}:`}
+            canMail={canMail}
+            onClose={() => setMandate(undefined)}
+          />
+        </div>
+      ) : pending ? (
         <div className="bulkbar" role="alertdialog" aria-label="Sammelaktion bestätigen">
           <span>
             <strong>{ids.length} Mitglieder</strong> {pending.action === 'add_to_group' ? 'ab' : 'zum'} {formatDate(pending.date)} {pending.action === 'add_to_group' ? `zu „${pending.groupName}“ hinzufügen` : `aus „${pending.groupName}“ austragen`}:{' '}
@@ -293,6 +306,12 @@ function BulkBar({ ids, sample, canMail, onDone }: { ids: string[]; sample: stri
           <button className="btn btn-primary" value="add_to_group">Zur Gruppe hinzufügen</button>
           <button className="btn" value="end_group">Gruppe beenden</button>
           {canMail && <button type="button" className="btn btn-ghost" onClick={() => navigate('/kommunikation', { state: { memberIds: ids } })}>E-Mail schreiben</button>}
+          {canSepa && (
+            <MandateMenu end>
+              <button type="button" onClick={(e) => { closeMenu(e); setMandate('request'); }}>SEPA-Mandat anfordern …</button>
+              <button type="button" onClick={(e) => { closeMenu(e); setMandate('notice'); }}>SEPA-Mandat mitteilen …</button>
+            </MandateMenu>
+          )}
         </form>
       )}
       {error && <div className="alert alert-error" role="alert" style={{ marginBottom: 'var(--s-3)' }}>{error}</div>}

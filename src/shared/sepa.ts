@@ -16,6 +16,9 @@ export const mandateCreate = z.object({
   pendingEvidence: z.boolean().default(false),
 });
 
+/** New bank account for an existing mandate (same account holder): the reference stays, no new signature. */
+export const mandateAccountChange = z.object({ iban, bic });
+
 export const mandate = z.object({
   id: z.uuid(),
   personId: z.uuid(),

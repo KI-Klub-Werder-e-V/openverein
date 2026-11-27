@@ -6,6 +6,9 @@ import { customPlaceholders, fill, textToHtml, type PlaceholderValues } from '..
 import { blindIndex, decryptBytes } from '../crypto.ts';
 import type { Db } from '../db.ts';
 import { storedPdf } from '../invoices/service.ts';
+import { Problem } from '../http/problem.ts';
+import { mandateFormOrg, mandateForms, mandateNotices, renderMandateForm } from '../sepa/mandateForm.ts';
+import { formatDate } from '../../shared/dates.ts';
 import { mailer, senderOf } from './transport.ts';
 
 export const unsubscribeToken = (deliveryId: string) => `${deliveryId}.${blindIndex(`unsubscribe:${deliveryId}`).slice(0, 32)}`;
@@ -89,8 +92,8 @@ async function sendOne(db: Db, id: string, baseUrl: string | undefined) {
     .innerJoin('person', 'person.id', 'delivery.person_id')
     .leftJoin('member', 'member.id', 'delivery.member_id')
     .select([
-      'delivery.id', 'delivery.email', 'delivery.attempts', 'delivery.invoice_id', 'delivery.donation_receipt_id', 'delivery.organization_id', 'delivery.message_id',
-      'message.subject', 'message.body', 'message.category', 'message.recipient_filter',
+      'delivery.id', 'delivery.email', 'delivery.attempts', 'delivery.invoice_id', 'delivery.donation_receipt_id', 'delivery.organization_id', 'delivery.message_id', 'delivery.member_id',
+      'message.kind as message_kind', 'message.subject', 'message.body', 'message.category', 'message.recipient_filter',
       'organization.name as org_name', 'organization.mail_from_name', 'organization.mail_from_address', 'organization.mail_reply_to',
       'person.kind', 'person.first_name', 'person.last_name', 'person.company_name', 'person.custom', 'member.membership_number',
       'person.email as current_email', 'person.einvoice_format', 'person.einvoice_address',
@@ -145,6 +148,27 @@ async function sendOne(db: Db, id: string, baseUrl: string | undefined) {
     values.bestaetigung = r.number;
     values.betrag = (Number(r.total_cents) / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
     attachments.push({ filename: `${r.number}.pdf`, content: r.pdf, contentType: 'application/pdf' });
+  }
+  if (d.message_kind === 'mandate_forms' || d.message_kind === 'mandate_notices') {
+    // Rendered right before sending, so form and text show today's address, club and mandate data.
+    const org = await mandateFormOrg(db, d.organization_id).catch((e: unknown) => {
+      if (e instanceof Problem) return null;
+      throw e;
+    });
+    if (!org) return done({ status: 'skipped', error: 'Gläubiger-ID des Vereins fehlt' });
+    if (d.message_kind === 'mandate_forms') {
+      const [form] = d.member_id ? await mandateForms(db, d.organization_id, [d.member_id]) : [];
+      if (!form) return done({ status: 'skipped', error: 'Mitglied nicht mehr vorhanden' });
+      attachments.push({ filename: 'SEPA-Lastschriftmandat.pdf', content: await renderMandateForm(org, form), contentType: 'application/pdf' });
+    } else {
+      const [notice] = d.member_id ? await mandateNotices(db, d.organization_id, [d.member_id]) : [];
+      if (!notice) return done({ status: 'skipped', error: 'kein Mandat mehr' });
+      values.glaeubiger_id = org.creditorId;
+      values.mandatsreferenz = notice.mandate.reference;
+      values.kontoinhaber = notice.mandate.accountHolder;
+      values.iban = notice.mandate.ibanMasked;
+      values.unterschrieben = formatDate(notice.mandate.signedOn);
+    }
   }
   let text = fill(d.body, values);
   const unsubscribe = d.category === 'newsletter' && baseUrl ? `${baseUrl}/abmelden#${unsubscribeToken(d.id)}` : null;

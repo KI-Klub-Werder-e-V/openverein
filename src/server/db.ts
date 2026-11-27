@@ -597,7 +597,7 @@ export interface ParticipationTable {
 export interface MessageTable {
   id: Generated<string>;
   organization_id: string;
-  kind: Generated<'free' | 'invoices' | 'donation_receipts'>;
+  kind: Generated<'free' | 'invoices' | 'donation_receipts' | 'mandate_forms' | 'mandate_notices'>;
   category: Generated<'notice' | 'newsletter'>;
   subject: string;
   body: string;

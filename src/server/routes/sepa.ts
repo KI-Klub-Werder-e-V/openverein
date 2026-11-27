@@ -2,13 +2,18 @@ import { createHash } from 'node:crypto';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { sql } from 'kysely';
 import { z } from 'zod';
-import { candidate, mandate, mandateCreate, run, runCreate, runSummary, type Candidate } from '../../shared/sepa.ts';
+import { candidate, mandate, mandateAccountChange, mandateCreate, run, runCreate, runSummary, type Candidate } from '../../shared/sepa.ts';
 import { audit } from '../audit.ts';
 import { requireActor } from '../auth/session.ts';
 import { blindIndex, decrypt, encrypt, maskIban } from '../crypto.ts';
 import type { Db, SepaMandateTable } from '../db.ts';
 import { CONSTRAINT_MESSAGES, notFound, Problem } from '../http/problem.ts';
-import { loadMemberRow, orgToday, scopePredicate } from '../members/query.ts';
+import { applyScope, loadMemberRow, orgToday, scopePredicate } from '../members/query.ts';
+import { SYSTEM_TEMPLATES } from '../../shared/mail.ts';
+import { mergeLetters } from '../letters.ts';
+import { emailHash } from '../mail/worker.ts';
+import { mandateFormOrg, mandateForms, mandateNotices, renderMandateForm, renderMandateNotice } from '../sepa/mandateForm.ts';
+import { createMessage } from './messages.ts';
 import { type Actor, can, requirePermission, requireStepUp, restrictedFields, scopeOf } from '../policy.ts';
 import { isValidCreditorId } from '../../shared/iban.ts';
 import { addBusinessDays, isTargetDay, pain001, pain008, sepaText, splitIntoFiles } from '../sepa/pain.ts';
@@ -115,6 +120,147 @@ export const sepaRoutes: FastifyPluginAsyncZod = async (app) => {
       return { status: 'active' };
     }, 'mandate.activated');
   });
+
+  // Same account holder, only the account changes (bank merger, moved account): no new signature, the reference stays.
+  // A new mandate (with a fresh signature) goes through POST /members/:id/mandates instead.
+  app.post('/mandates/:id/account', { schema: { tags, summary: 'Neue Bankverbindung zum bestehenden Mandat (gleiche Kontoinhaber:in; Referenz bleibt, keine neue Unterschrift)', params: idParam, body: mandateAccountChange, response: { 200: mandate } } }, async (req) => {
+    const actor = requireActor(req);
+    requirePermission(actor, 'sepa', 'write');
+    if (restrictedFields(actor).has('iban')) throw new Problem(403, 'forbidden', 'Dafür fehlt Dir die Berechtigung.', 'Du darfst keine IBAN sehen oder erfassen.', { permission: 'members.field.iban' });
+    return db.transaction().execute(async (tx) => {
+      const m = await tx.selectFrom('sepa_mandate').selectAll().where('id', '=', req.params.id).where('organization_id', '=', actor.organizationId).forUpdate().executeTakeFirst();
+      if (!m) throw notFound('Mandat');
+      if (m.status !== 'active' && m.status !== 'pending_evidence') throw new Problem(409, 'not-active', 'Nur ein aktives Mandat lässt sich auf eine neue Bankverbindung umstellen.', 'Für ein widerrufenes Mandat brauchst Du ein neues Mandat mit Unterschrift.');
+      const member = await tx.selectFrom('member').select('id').where('person_id', '=', m.person_id).executeTakeFirst();
+      if (member) await loadMemberRow(tx, actor, member.id, 'write', 'sepa');
+      await amendMandateIban(tx, actor, m, req.body.iban, req.body.bic ?? null);
+      const after = await tx.selectFrom('sepa_mandate').selectAll().where('id', '=', m.id).executeTakeFirstOrThrow();
+      return mandateDto(actor, after);
+    });
+  });
+
+  // ---------- Asking for a mandate, telling a member its data (letter as PDF or by e-mail) ----------
+
+  /**
+   * Two actions with the same shape: "request" sends the form to fill in and sign (attached to the mail), "notice"
+   * tells a member with a mandate its reference, creditor ID, holder and masked IBAN (in the mail text).
+   */
+  const mandateLetters = {
+    request: { path: 'mandate-forms', pdf: 'mandate-form.pdf', file: 'SEPA-Mandat', files: 'SEPA-Mandate', messageKind: 'mandate_forms', template: 'mandate_request', action: 'mandate.requested', load: mandateForms, render: renderMandateForm },
+    notice: { path: 'mandate-notices', pdf: 'mandate-notice.pdf', file: 'SEPA-Mandat-Mitteilung', files: 'SEPA-Mandat-Mitteilungen', messageKind: 'mandate_notices', template: 'mandate_notice', action: 'mandate.notified', load: mandateNotices, render: renderMandateNotice },
+  } as const;
+  const memberIdsBody = z.object({ memberIds: z.array(z.uuid()).min(1).max(5000) });
+  const fileName = (s: string) => s.replace(/[^\w.-]+/g, '_');
+  const noMandate = () => new Problem(409, 'no-mandate', 'Es gibt kein Mandat, das sich mitteilen ließe.', 'Mitteilen lässt sich nur ein aktives Mandat oder eines, dessen Unterschrift noch aussteht.');
+
+  /** The chosen members the actor may change SEPA data for (and, when mailing, write to); others are left out. */
+  async function allowedMembers(conn: Db, actor: Actor, ids: string[], mail: boolean) {
+    const today = await orgToday(conn, actor.organizationId);
+    let q = conn.selectFrom('member').select('id').where('organization_id', '=', actor.organizationId).where('id', 'in', ids).where(applyScope(actor, today, 'write', 'sepa'));
+    if (mail) q = q.where(applyScope(actor, today, 'write', 'communication'));
+    return (await q.execute()).map((r) => r.id);
+  }
+
+  /** Members among the allowed ones that have no mandate to tell about (always none for a request). */
+  async function withoutMandate(conn: Db, actor: Actor, ids: string[], loaded: { memberId: string }[]) {
+    const have = new Set(loaded.map((l) => l.memberId));
+    const missing = ids.filter((id) => !have.has(id));
+    return (await mandateForms(conn, actor.organizationId, missing)).map((f) => ({ memberId: f.memberId, name: f.name }));
+  }
+
+  async function auditLetters(conn: Db, actor: Actor, action: string, memberIds: string[], channel: 'pdf' | 'letter' | 'email') {
+    for (const id of memberIds) await audit(conn, actor.organizationId, actor, { action, entityType: 'member', entityId: id, diff: { channel: [null, channel] } });
+  }
+
+  for (const [kind, k] of Object.entries(mandateLetters)) {
+    const notice = kind === 'notice';
+    const render = k.render as (org: Awaited<ReturnType<typeof mandateFormOrg>>, f: Awaited<ReturnType<typeof k.load>>[number]) => Promise<Buffer>;
+
+    app.get(`/members/:id/${k.pdf}`, { schema: { tags, summary: notice ? 'Mitteilung der Mandatsdaten als PDF-Brief (IBAN verdeckt)' : 'Mandatsformular zum Ausfüllen als PDF (ohne IBAN und Mandatsreferenz)', params: idParam } }, async (req, reply) => {
+      const actor = requireActor(req);
+      requirePermission(actor, 'sepa', 'write');
+      const { row } = await loadMemberRow(db, actor, req.params.id, 'write', 'sepa');
+      const org = await mandateFormOrg(db, actor.organizationId);
+      const [one] = await k.load(db, actor.organizationId, [row.id]);
+      if (!one) throw noMandate();
+      const pdf = await render(org, one);
+      await auditLetters(db, actor, k.action, [row.id], 'pdf');
+      return reply.header('content-type', 'application/pdf').header('content-disposition', `attachment; filename="${k.file}-${fileName(one.membershipNumber)}.pdf"`).header('cache-control', 'private, no-store').send(pdf);
+    });
+
+    app.post(`/${k.path}/letters.pdf`, { schema: { tags, summary: `${notice ? 'Mitteilungen der Mandatsdaten' : 'Mandatsformulare'} als ein PDF zum Drucken (nach Postleitzahl, für Duplexdruck)`, body: memberIdsBody } }, async (req, reply) => {
+      const actor = requireActor(req);
+      requirePermission(actor, 'sepa', 'write');
+      const ids = await allowedMembers(db, actor, req.body.memberIds, false);
+      if (!ids.length) throw notFound('Mitglied');
+      const org = await mandateFormOrg(db, actor.organizationId);
+      const all = await k.load(db, actor.organizationId, ids);
+      if (!all.length) throw noMandate();
+      const letters = [];
+      for (const f of all) letters.push({ pdf: await render(org, f), postalCode: f.postalCode ?? '99999z', sortKey: f.membershipNumber });
+      const merged = await mergeLetters(letters);
+      await auditLetters(db, actor, k.action, all.map((f) => f.memberId), 'letter');
+      return reply.header('content-type', 'application/pdf').header('content-disposition', `attachment; filename="${k.files}-${org.today}.pdf"`).header('cache-control', 'private, no-store').send(merged);
+    });
+
+    app.post(
+      `/${k.path}/send`,
+      {
+        schema: {
+          tags,
+          summary: notice
+            ? 'Mandatsdaten per E-Mail mitteilen; wer Briefe bevorzugt oder keine Adresse hat, wird zum Drucken gelistet, wer kein Mandat hat, ausgelassen'
+            : 'Mandatsformulare per E-Mail verschicken; wer Briefe bevorzugt oder keine Adresse hat, wird zum Drucken gelistet',
+          body: memberIdsBody,
+          response: {
+            201: z.object({
+              messageId: z.uuid().nullable(),
+              sent: z.number(),
+              alreadyQueued: z.number(),
+              toPrint: z.array(z.object({ memberId: z.uuid(), name: z.string(), reason: z.string() })),
+              withoutMandate: z.array(z.object({ memberId: z.uuid(), name: z.string() })),
+            }),
+          },
+        },
+      },
+      async (req, reply) => {
+        const actor = requireActor(req);
+        requirePermission(actor, 'sepa', 'write');
+        requirePermission(actor, 'communication', 'write');
+        // Refuse before anything is queued: the worker could not fill in the letter without a creditor ID.
+        await mandateFormOrg(db, actor.organizationId);
+        const result = await db.transaction().execute(async (tx) => {
+          // One mailing at a time per club and kind, with the check for mails still waiting in the queue: a double click sends once.
+          await sql`select pg_advisory_xact_lock(hashtext(${`${k.messageKind}:${actor.organizationId}`}))`.execute(tx);
+          const ids = await allowedMembers(tx, actor, req.body.memberIds, true);
+          if (!ids.length) throw notFound('Mitglied');
+          const all = await k.load(tx, actor.organizationId, ids);
+          const waiting = new Set((await tx.selectFrom('delivery').innerJoin('message', 'message.id', 'delivery.message_id').select('delivery.member_id')
+            .where('message.organization_id', '=', actor.organizationId).where('message.kind', '=', k.messageKind).where('delivery.member_id', 'in', ids).where('delivery.status', 'in', ['queued', 'sending']).execute()).map((d) => d.member_id));
+          const suppressed = new Set((await tx.selectFrom('suppression').select('email_hash').where('organization_id', '=', actor.organizationId).where('reason', 'in', ['bounce', 'manual']).execute()).map((x) => x.email_hash));
+          const send: { personId: string; memberId: string; email: string }[] = [];
+          const toPrint: { memberId: string; name: string; reason: string }[] = [];
+          let alreadyQueued = 0;
+          for (const f of all) {
+            if (waiting.has(f.memberId)) { alreadyQueued++; continue; }
+            const reason = f.preferredChannel === 'letter' ? 'bevorzugt Brief' : !f.email ? 'keine E-Mail-Adresse' : suppressed.has(emailHash(f.email)) ? 'Adresse unzustellbar' : null;
+            if (reason) toPrint.push({ memberId: f.memberId, name: f.name, reason });
+            else send.push({ personId: f.personId, memberId: f.memberId, email: f.email! });
+          }
+          let messageId: string | null = null;
+          if (send.length) {
+            const own = await tx.selectFrom('mail_template').select(['subject', 'body']).where('organization_id', '=', actor.organizationId).where('key', '=', k.template).executeTakeFirst();
+            const text = own ?? SYSTEM_TEMPLATES[k.template];
+            messageId = await createMessage(tx, actor, { kind: k.messageKind, category: 'notice', subject: text.subject, body: text.body, filter: { memberIds: send.map((x) => x.memberId) } }, send);
+            await auditLetters(tx, actor, k.action, send.map((x) => x.memberId), 'email');
+          }
+          return { messageId, sent: send.length, alreadyQueued, toPrint, withoutMandate: await withoutMandate(tx, actor, ids, all) };
+        });
+        reply.status(201);
+        return result;
+      },
+    );
+  }
 
   // ---------- Collection runs ----------
 
@@ -435,6 +581,31 @@ export async function assertNotInLiveRun(conn: Db, mandateId: string) {
     .where('collection_run.status', 'in', ['generated', 'downloaded', 'submitted'])
     .executeTakeFirst();
   if (live) throw new Problem(409, 'mandate-in-run', 'Mit diesem Mandat läuft gerade ein Einzug.', 'Gib den Einzug zuerst frei oder warte die Gutschrift ab.');
+}
+
+/**
+ * Takes a new IBAN into an existing mandate of the SAME account holder (bank merger, moved account): the reference
+ * stays, so the member need not sign again. SMNDA ("same mandate, new debtor account") is flagged only when the bank
+ * already knows this mandate (recurrent, active, collected at least once); otherwise the account is simply swapped,
+ * because there is no earlier account the bank saw. Returns whether an amendment was flagged. Shared by the portal
+ * bank-change flow (changes.ts) and the admin action (POST /mandates/:id/account).
+ */
+export async function amendMandateIban(tx: Db, actor: Actor, mandate: Selectable<SepaMandateTable>, iban: string, bic: string | null = null) {
+  const amend = mandate.status === 'active' && mandate.first_collected && mandate.type === 'recurrent';
+  await tx
+    .updateTable('sepa_mandate')
+    .set({
+      iban_encrypted: encrypt(iban),
+      iban_hash: blindIndex(iban),
+      iban_last4: iban.slice(-4),
+      bic,
+      ...(amend ? { amended_from_iban_encrypted: mandate.amendment_pending ? mandate.amended_from_iban_encrypted : mandate.iban_encrypted, amendment_pending: true } : {}),
+      updated_at: new Date(),
+    })
+    .where('id', '=', mandate.id)
+    .execute();
+  await audit(tx, actor.organizationId, actor, { action: 'mandate.amended', entityType: 'sepa_mandate', entityId: mandate.id, diff: { ibanLast4: [mandate.iban_last4, iban.slice(-4)], amendment: [null, amend] } });
+  return amend;
 }
 
 export async function insertMandate(

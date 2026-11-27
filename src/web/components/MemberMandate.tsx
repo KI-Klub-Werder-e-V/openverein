@@ -5,14 +5,24 @@ import { MANDATE_STATUS_LABEL, type Mandate } from '../../shared/sepa.ts';
 import { api, ApiError } from '../lib/api.ts';
 import { todayLocal } from '../lib/hooks.ts';
 import { Field } from './Field.tsx';
+import { closeMenu, downloadPdf, MandateLetters, MandateMenu, problemText, type MandateLetterKind } from './MandateLetters.tsx';
 
-/** SEPA mandate of the member: show, record a signed one, revoke. IBANs only for those allowed to see them. */
-export function MemberMandate({ memberId, holder, canWrite }: { memberId: string; holder: string; canWrite: boolean }) {
+/**
+ * SEPA mandate of the member: show, record a signed one, revoke, ask for one (form) or tell the member its data.
+ * IBANs only for those allowed to see them.
+ */
+export function MemberMandate({ memberId, holder, canWrite, canMail }: { memberId: string; holder: string; canWrite: boolean; canMail: boolean }) {
   const qc = useQueryClient();
   const mandates = useQuery({ queryKey: ['mandates', memberId], queryFn: () => api<Mandate[]>(`/members/${memberId}/mandates`) });
-  const [form, setForm] = useState<'new' | 'revoke' | null>(null);
+  const [form, setForm] = useState<'new' | 'account' | 'revoke' | MandateLetterKind | null>(null);
   const [error, setError] = useState<ApiError>();
+  const [formError, setFormError] = useState<string>();
   const current = mandates.data?.find((m) => m.status === 'active' || m.status === 'pending_evidence');
+
+  function pdf(file: string) {
+    setFormError(undefined);
+    downloadPdf(`/api/v1/members/${memberId}/${file}`).catch((e: unknown) => setFormError(problemText(e)));
+  }
 
   async function call(path: string, body: unknown) {
     setError(undefined);
@@ -50,10 +60,21 @@ export function MemberMandate({ memberId, holder, canWrite }: { memberId: string
       )}
       {canWrite && !form && (
         <div className="actions-row">
-          <button className="btn" onClick={() => setForm('new')}>{current ? 'Neues Mandat (z. B. neue IBAN)' : 'Mandat erfassen'}</button>
+          <button className="btn" onClick={() => setForm('new')}>{current ? 'Neues Mandat' : 'Mandat erfassen'}</button>
+          {current && <button className="btn" onClick={() => setForm('account')}>Neue Bankverbindung</button>}
           {current?.status === 'pending_evidence' && <button className="btn" onClick={() => void call(`/mandates/${current.id}/activate`, {})}>Unterschrift liegt vor</button>}
           {current && <button className="btn btn-ghost btn-danger" onClick={() => setForm('revoke')}>Widerrufen</button>}
+          <MandateMenu>
+            {canMail && <button type="button" onClick={(e) => { closeMenu(e); setForm('request'); }}>Mandat per E-Mail anfordern …</button>}
+            <button type="button" onClick={(e) => { closeMenu(e); pdf('mandate-form.pdf'); }}>Mandatsformular als PDF</button>
+            {current && canMail && <button type="button" onClick={(e) => { closeMenu(e); setForm('notice'); }}>Mandat per E-Mail mitteilen …</button>}
+            {current && <button type="button" onClick={(e) => { closeMenu(e); pdf('mandate-notice.pdf'); }}>Mitteilung als PDF</button>}
+          </MandateMenu>
         </div>
+      )}
+      {formError && <div className="alert alert-error" role="alert">{formError}</div>}
+      {(form === 'request' || form === 'notice') && (
+        <MandateLetters kind={form} memberIds={[memberId]} prompt={form === 'request' ? 'Mandatsformular per E-Mail schicken?' : 'Mandatsreferenz, Gläubiger-ID und Bankverbindung (IBAN verdeckt) per E-Mail mitteilen?'} canMail={canMail} onClose={() => setForm(null)} />
       )}
       {form === 'new' && (
         <form className="inline-form" noValidate onSubmit={submit}>
@@ -66,8 +87,18 @@ export function MemberMandate({ memberId, holder, canWrite }: { memberId: string
             <Field label="BIC (optional)" name="bic" error={error?.fieldError('bic')} />
           </div>
           <label className="check"><input type="checkbox" name="pending" /> Unterschriebenes Mandat liegt noch nicht vor</label>
-          {current && <p className="meta">Das bisherige Mandat {current.reference} wird dabei widerrufen.</p>}
+          {current && <p className="meta">Das bisherige Mandat {current.reference} wird dabei widerrufen. Hat sich nur die Bankverbindung bei gleicher Kontoinhaber:in geändert (z. B. Bankfusion)? Dann nutze „Neue Bankverbindung“ – das behält die Referenz und erspart eine neue Unterschrift.</p>}
           <div className="actions-row" style={{ marginTop: 0 }}><button className="btn btn-primary">Speichern</button><button type="button" className="btn btn-ghost" onClick={() => setForm(null)}>Abbrechen</button></div>
+        </form>
+      )}
+      {form === 'account' && current && (
+        <form className="inline-form" noValidate onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); void call(`/mandates/${current.id}/account`, { iban: f.get('iban'), bic: f.get('bic') || null }); }}>
+          <p className="meta">Gleiche Kontoinhaber:in ({current.accountHolder}), nur die Bankverbindung ändert sich. Die Mandatsreferenz {current.reference} bleibt; eine neue Unterschrift ist nicht nötig. Die nächste Lastschrift kommt vom neuen Konto.</p>
+          <div className="form-row">
+            <Field label="Neue IBAN" name="iban" autoComplete="off" error={error?.fieldError('iban')} />
+            <Field label="BIC (optional)" name="bic" error={error?.fieldError('bic')} />
+          </div>
+          <div className="actions-row" style={{ marginTop: 0 }}><button className="btn btn-primary">Übernehmen</button><button type="button" className="btn btn-ghost" onClick={() => setForm(null)}>Abbrechen</button></div>
         </form>
       )}
       {form === 'revoke' && current && (
