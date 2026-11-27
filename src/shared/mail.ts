@@ -120,7 +120,7 @@ export const SYSTEM_TEMPLATES: Record<SystemTemplateKey, { name: string; subject
   mandate_request: {
     name: 'SEPA-Mandat anfordern',
     subject: 'Bitte um ein SEPA-Lastschriftmandat',
-    body: 'Hallo {{vorname}},\n\nfür den Einzug Deiner Beiträge brauchen wir ein neues SEPA-Lastschriftmandat, zum Beispiel weil sich Deine Bankverbindung geändert hat. Bitte trage im angehängten Formular Deine Bankverbindung ein, unterschreib es und schick es uns zurück. Die Anschrift steht unten auf dem Formular.\n\nDie Mandatsreferenz teilen wir Dir mit, bevor wir zum ersten Mal abbuchen.\n\nViele Grüße\n{{verein}}',
+    body: 'Hallo {{vorname}},\n\nfür den Einzug Deiner Beiträge brauchen wir ein SEPA-Lastschriftmandat. Bitte trage im angehängten Formular Deine Bankverbindung ein, unterschreib es und schick es uns zurück. Die Anschrift steht unten auf dem Formular.\n\nDie Mandatsreferenz teilen wir Dir mit, bevor wir zum ersten Mal abbuchen.\n\nViele Grüße\n{{verein}}',
   },
   mandate_notice: {
     name: 'SEPA-Mandat mitteilen',
