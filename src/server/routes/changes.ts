@@ -4,13 +4,14 @@ import { formatDate } from '../../shared/dates.ts';
 import { displayName } from '../../shared/members.ts';
 import { audit } from '../audit.ts';
 import { requireActor } from '../auth/session.ts';
-import { blindIndex, decrypt, encrypt } from '../crypto.ts';
+import { decrypt } from '../crypto.ts';
 import type { ChangeField } from '../db.ts';
 import { notFound, Problem } from '../http/problem.ts';
 import { sendSystemMail } from '../mail/system.ts';
 import { applyScope, loadMemberRow, orgToday } from '../members/query.ts';
 import { type Actor, isClubAdmin, requirePermission, requireStepUp, restrictedFields, requirePerson } from '../policy.ts';
 import { issueLoginCode } from './portal.ts';
+import { amendMandateIban } from './sepa.ts';
 
 const tags = ['members'];
 const idParam = z.object({ id: z.uuid() });
@@ -110,10 +111,8 @@ export const changeRoutes: FastifyPluginAsyncZod = async (app) => {
             message = `für das Konto von ${change.accountHolder} brauchen wir ein neues SEPA-Mandat mit dessen Unterschrift. Bis es vorliegt, bleibt es bei der bisherigen Bankverbindung.`;
           } else {
             // Same holder, same mandate: the bank learns about the new account with the next debit (amendment),
-            // unless the bank has never seen this mandate (never collected, or still waiting for its signature).
-            const amend = mandate.status === 'active' && mandate.first_collected && mandate.type === 'recurrent';
-            await tx.updateTable('sepa_mandate').set({ iban_encrypted: encrypt(change.iban), iban_hash: blindIndex(change.iban), iban_last4: change.iban.slice(-4), bic: null, ...(amend ? { amended_from_iban_encrypted: mandate.amendment_pending ? mandate.amended_from_iban_encrypted : mandate.iban_encrypted, amendment_pending: true } : {}), updated_at: new Date() }).where('id', '=', mandate.id).execute();
-            await audit(tx, actor.organizationId, actor, { action: 'mandate.amended', entityType: 'sepa_mandate', entityId: mandate.id, diff: { ibanLast4: [mandate.iban_last4, change.iban.slice(-4)], amendment: [null, amend] } });
+            // unless it has never seen this mandate. Same path as the admin action POST /mandates/:id/account.
+            await amendMandateIban(tx, actor, mandate, change.iban);
             message = `wir haben Deine neue Bankverbindung (endet auf ${change.iban.slice(-4)}) übernommen. Die nächste Lastschrift kommt von diesem Konto.`;
           }
         } else if (c.field === 'address') {

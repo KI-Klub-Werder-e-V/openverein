@@ -32,3 +32,18 @@ Das System MUSS (SHALL) Mitgliedern die Daten ihres aktuellen Mandats per E-Mail
 #### Scenario: Mitglied ohne Mandat
 - **WHEN** zwei Mitglieder ausgewählt sind und eines kein Mandat hat
 - **THEN** geht nur an das andere eine Mitteilung, und das Mitglied ohne Mandat wird als ausgelassen genannt
+
+### Requirement: Neue Bankverbindung zum bestehenden Mandat
+Wechselt bei **gleicher Kontoinhaber:in** nur die Bankverbindung, MUSS (SHALL) das System die neue IBAN in das bestehende Mandat übernehmen können, ohne ein neues anzulegen: Die Mandatsreferenz bleibt, eine neue Unterschrift ist nicht nötig. Es MUSS denselben Weg (SMNDA nach EPC132-17 §2.5) nutzen wie die Bankänderung aus dem Portal. Beim Anlegen eines neuen Mandats SOLLTE (SHOULD) die Oberfläche auf diese Aktion hinweisen, wenn schon ein aktives Mandat besteht.
+
+#### Scenario: Bankfusion bei bekanntem Mandat
+- **WHEN** für ein aktives, bereits eingezogenes Mandat eine neue IBAN übernommen wird
+- **THEN** bleibt die Mandatsreferenz erhalten, und der nächste Einzug trägt die Änderung (SMNDA) mit dem bisherigen Konto
+
+#### Scenario: Konto gewechselt, bevor je eingezogen wurde
+- **WHEN** für ein Mandat, das die Bank noch nie gesehen hat, eine neue IBAN übernommen wird
+- **THEN** wird nur das Konto ausgetauscht, ohne eine Änderung anzukündigen
+
+#### Scenario: Widerrufenes Mandat
+- **WHEN** für ein widerrufenes Mandat eine neue Bankverbindung übernommen werden soll
+- **THEN** wird die Aktion abgelehnt und auf ein neues Mandat verwiesen

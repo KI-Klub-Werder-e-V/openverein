@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { sql } from 'kysely';
 import { z } from 'zod';
-import { candidate, mandate, mandateCreate, run, runCreate, runSummary, type Candidate } from '../../shared/sepa.ts';
+import { candidate, mandate, mandateAccountChange, mandateCreate, run, runCreate, runSummary, type Candidate } from '../../shared/sepa.ts';
 import { audit } from '../audit.ts';
 import { requireActor } from '../auth/session.ts';
 import { blindIndex, decrypt, encrypt, maskIban } from '../crypto.ts';
@@ -119,6 +119,24 @@ export const sepaRoutes: FastifyPluginAsyncZod = async (app) => {
       if (m.status !== 'pending_evidence') throw new Problem(409, 'not-pending', 'Nur Mandate ohne Unterschrift lassen sich aktivieren.');
       return { status: 'active' };
     }, 'mandate.activated');
+  });
+
+  // Same account holder, only the account changes (bank merger, moved account): no new signature, the reference stays.
+  // A new mandate (with a fresh signature) goes through POST /members/:id/mandates instead.
+  app.post('/mandates/:id/account', { schema: { tags, summary: 'Neue Bankverbindung zum bestehenden Mandat (gleiche Kontoinhaber:in; Referenz bleibt, keine neue Unterschrift)', params: idParam, body: mandateAccountChange, response: { 200: mandate } } }, async (req) => {
+    const actor = requireActor(req);
+    requirePermission(actor, 'sepa', 'write');
+    if (restrictedFields(actor).has('iban')) throw new Problem(403, 'forbidden', 'Dafür fehlt Dir die Berechtigung.', 'Du darfst keine IBAN sehen oder erfassen.', { permission: 'members.field.iban' });
+    return db.transaction().execute(async (tx) => {
+      const m = await tx.selectFrom('sepa_mandate').selectAll().where('id', '=', req.params.id).where('organization_id', '=', actor.organizationId).forUpdate().executeTakeFirst();
+      if (!m) throw notFound('Mandat');
+      if (m.status !== 'active' && m.status !== 'pending_evidence') throw new Problem(409, 'not-active', 'Nur ein aktives Mandat lässt sich auf eine neue Bankverbindung umstellen.', 'Für ein widerrufenes Mandat brauchst Du ein neues Mandat mit Unterschrift.');
+      const member = await tx.selectFrom('member').select('id').where('person_id', '=', m.person_id).executeTakeFirst();
+      if (member) await loadMemberRow(tx, actor, member.id, 'write', 'sepa');
+      await amendMandateIban(tx, actor, m, req.body.iban, req.body.bic ?? null);
+      const after = await tx.selectFrom('sepa_mandate').selectAll().where('id', '=', m.id).executeTakeFirstOrThrow();
+      return mandateDto(actor, after);
+    });
   });
 
   // ---------- Asking for a mandate, telling a member its data (letter as PDF or by e-mail) ----------
@@ -563,6 +581,31 @@ export async function assertNotInLiveRun(conn: Db, mandateId: string) {
     .where('collection_run.status', 'in', ['generated', 'downloaded', 'submitted'])
     .executeTakeFirst();
   if (live) throw new Problem(409, 'mandate-in-run', 'Mit diesem Mandat läuft gerade ein Einzug.', 'Gib den Einzug zuerst frei oder warte die Gutschrift ab.');
+}
+
+/**
+ * Takes a new IBAN into an existing mandate of the SAME account holder (bank merger, moved account): the reference
+ * stays, so the member need not sign again. SMNDA ("same mandate, new debtor account") is flagged only when the bank
+ * already knows this mandate (recurrent, active, collected at least once); otherwise the account is simply swapped,
+ * because there is no earlier account the bank saw. Returns whether an amendment was flagged. Shared by the portal
+ * bank-change flow (changes.ts) and the admin action (POST /mandates/:id/account).
+ */
+export async function amendMandateIban(tx: Db, actor: Actor, mandate: Selectable<SepaMandateTable>, iban: string, bic: string | null = null) {
+  const amend = mandate.status === 'active' && mandate.first_collected && mandate.type === 'recurrent';
+  await tx
+    .updateTable('sepa_mandate')
+    .set({
+      iban_encrypted: encrypt(iban),
+      iban_hash: blindIndex(iban),
+      iban_last4: iban.slice(-4),
+      bic,
+      ...(amend ? { amended_from_iban_encrypted: mandate.amendment_pending ? mandate.amended_from_iban_encrypted : mandate.iban_encrypted, amendment_pending: true } : {}),
+      updated_at: new Date(),
+    })
+    .where('id', '=', mandate.id)
+    .execute();
+  await audit(tx, actor.organizationId, actor, { action: 'mandate.amended', entityType: 'sepa_mandate', entityId: mandate.id, diff: { ibanLast4: [mandate.iban_last4, iban.slice(-4)], amendment: [null, amend] } });
+  return amend;
 }
 
 export async function insertMandate(
