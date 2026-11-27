@@ -13,7 +13,7 @@ import { api, ApiError, uploadFile } from '../lib/api.ts';
 import { todayLocal } from '../lib/hooks.ts';
 import { euroInput, parseEuro } from '../lib/money.ts';
 import { useTitle } from '../lib/useTitle.ts';
-import { AccountSelect, LedgerLayout, RangePicker, useAccounts, type Settings, type TaxRate } from './Ledger.tsx';
+import { AccountSelect, LedgerLayout, RangePicker, useAccounts, useLedgerRange, type Settings, type TaxRate } from './Ledger.tsx';
 
 const problemText = (e: unknown) => (e instanceof ApiError ? (e.problem.errors?.map((x) => x.message).join(' ') ?? [e.problem.title, e.problem.detail].filter(Boolean).join(' ')) : 'Das hat nicht geklappt.');
 const useSettings = () => useQuery({ queryKey: ['ledger-settings'], queryFn: () => api<Settings>('/ledger/settings') });
@@ -311,13 +311,11 @@ export function CashBookPage({ me }: { me: Me }) {
   useTitle('Kassenbuch');
   const { data: accounts } = useAccounts();
   const settings = useSettings();
-  const [params, setParams] = useSearchParams();
-  const year = todayLocal().slice(0, 4);
-  const from = params.get('von') ?? `${year}-01-01`;
-  const to = params.get('bis') ?? `${year}-12-31`;
+  const { from, to, month, ready, params, set: setRange } = useLedgerRange();
+  const [, setParams] = useSearchParams();
   const money = (accounts ?? []).filter((a) => a.kind === 'money');
   const accountId = params.get('konto') ?? settings.data?.cashAccountId ?? money[0]?.id ?? '';
-  const book = useQuery({ queryKey: ['cash-book', accountId, from, to], queryFn: () => api<CashBook>(`/ledger/cash-book?accountId=${accountId}&from=${from}&to=${to}`), enabled: !!accountId });
+  const book = useQuery({ queryKey: ['cash-book', accountId, from, to], queryFn: () => api<CashBook>(`/ledger/cash-book?accountId=${accountId}&from=${from}&to=${to}`), enabled: !!accountId && ready });
   const set = (k: string, v: string) => setParams({ ...Object.fromEntries(params), [k]: v });
 
   return (
@@ -329,7 +327,7 @@ export function CashBookPage({ me }: { me: Me }) {
         </select>
         <a className="btn" href={`/api/v1/ledger/cash-book.pdf?accountId=${accountId}&from=${from}&to=${to}`}>Als PDF</a>
       </div>
-      <RangePicker from={from} to={to} onChange={(f, t) => setParams({ ...Object.fromEntries(params), von: f, bis: t })} />
+      {ready && <RangePicker from={from} to={to} month={month} onChange={setRange} />}
       {book.data && (
         <div className="table-wrap">
           <table className="table" aria-label="Kassenbuch">

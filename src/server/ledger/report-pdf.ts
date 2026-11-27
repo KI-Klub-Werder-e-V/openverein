@@ -4,7 +4,8 @@ import { FONT, FONT_BOLD } from '../invoices/pdf.ts';
 
 interface Input {
   club: string;
-  year: number;
+  /** the fiscal year: first and last day and its name ("2025" or "2025/26") */
+  year: { start: string; end: string; label: string };
   euer: { spheres: { sphere: string; incomeCents: number; expenseCents: number; resultCents: number }[]; rows: { number: string; name: string; kind: 'income' | 'expense'; sphere: string; netCents: number }[]; totals: { incomeCents: number; expenseCents: number; resultCents: number }; warnings: { message: string }[] };
   money: { number: string; name: string; openingCents: number; closingCents: number }[];
   /** public demo: every page carries the watermark */
@@ -12,11 +13,14 @@ interface Input {
 }
 
 const mm = (v: number) => (v * 72) / 25.4;
+const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+/** "1. April 2025"; `withYear` false for column heads ("1. April") */
+const day = (d: string, withYear = true) => `${Number(d.slice(8, 10))}. ${MONTHS[Number(d.slice(5, 7)) - 1]}${withYear ? ` ${d.slice(0, 4)}` : ''}`;
 const euro = (c: number) => (c / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 
 /** Treasurer's report for the general assembly: balances, result by sphere, income and expenses by account. */
 export function treasurerReportPdf(d: Input): Promise<Buffer> {
-  const doc = new PDFDocument({ bufferPages: true, size: 'A4', margins: { top: mm(20), left: mm(22), right: mm(20), bottom: mm(18) }, info: { Title: `Kassenbericht ${d.year}`, Author: d.club } });
+  const doc = new PDFDocument({ bufferPages: true, size: 'A4', margins: { top: mm(20), left: mm(22), right: mm(20), bottom: mm(18) }, info: { Title: `Kassenbericht ${d.year.label}`, Author: d.club } });
   doc.registerFont('text', FONT);
   doc.registerFont('bold', FONT_BOLD);
   const left = mm(22);
@@ -43,10 +47,10 @@ export function treasurerReportPdf(d: Input): Promise<Buffer> {
   };
 
   doc.font('text').fontSize(9).fillColor(muted).text(d.club, left, mm(20), { width });
-  doc.moveDown(0.2).font('bold').fontSize(18).fillColor(ink).text(`Kassenbericht ${d.year}`, { width });
-  doc.font('text').fontSize(9.5).fillColor(muted).text(`Einnahmen-Überschuss-Rechnung, 1. Januar bis 31. Dezember ${d.year}`, { width });
+  doc.moveDown(0.2).font('bold').fontSize(18).fillColor(ink).text(`Kassenbericht ${d.year.label}`, { width });
+  doc.font('text').fontSize(9.5).fillColor(muted).text(`Einnahmen-Überschuss-Rechnung, ${day(d.year.start)} bis ${day(d.year.end)}`, { width });
 
-  head('Bestände', ['1. Januar', '31. Dezember']);
+  head('Bestände', [day(d.year.start, false), day(d.year.end, false)]);
   for (const m of d.money) row(`${m.number} ${m.name}`, [euro(m.openingCents), euro(m.closingCents)]);
   row('Summe', [euro(d.money.reduce((s, m) => s + m.openingCents, 0)), euro(d.money.reduce((s, m) => s + m.closingCents, 0))], true);
 

@@ -21,8 +21,14 @@ it('writes the EXTF 700 header and rows', () => {
 });
 
 it('finds the fiscal year of a date', async () => {
-  const { fiscalYear } = await import('../routes/exports.ts');
-  expect(fiscalYear('2026-03-05', 1)).toEqual({ start: '2026-01-01', end: '2026-12-31' });
-  expect(fiscalYear('2026-03-05', 7)).toEqual({ start: '2025-07-01', end: '2026-06-30' });
-  expect(fiscalYear('2026-07-01', 7)).toEqual({ start: '2026-07-01', end: '2027-06-30' });
+  const { fiscalYear } = await import('../../shared/ledger.ts');
+  expect(fiscalYear('2026-03-05', 1)).toMatchObject({ start: '2026-01-01', end: '2026-12-31', label: '2026' });
+  expect(fiscalYear('2026-03-05', 7)).toMatchObject({ start: '2025-07-01', end: '2026-06-30', label: '2025/26' });
+  expect(fiscalYear('2026-07-01', 7)).toMatchObject({ start: '2026-07-01', end: '2027-06-30', label: '2026/27' });
+  // Last and first day around the turn, a leap year end, December start and the turn of the century.
+  expect(fiscalYear('2026-03-31', 4)).toMatchObject({ year: 2025, label: '2025/26' });
+  expect(fiscalYear('2026-04-01', 4)).toMatchObject({ year: 2026, label: '2026/27' });
+  expect(fiscalYear('2027-06-01', 3)).toMatchObject({ start: '2027-03-01', end: '2028-02-29' });
+  expect(fiscalYear('2026-12-31', 12)).toMatchObject({ start: '2026-12-01', end: '2027-11-30', label: '2026/27' });
+  expect(fiscalYear('2100-01-15', 4)).toMatchObject({ label: '2099/00' });
 });

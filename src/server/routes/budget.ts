@@ -1,6 +1,7 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { sql } from 'kysely';
 import { z } from 'zod';
+import { fiscalYearOf } from '../../shared/ledger.ts';
 import { audit } from '../audit.ts';
 import { requireActor } from '../auth/session.ts';
 import { Problem } from '../http/problem.ts';
@@ -15,11 +16,14 @@ export const budgetRoutes: FastifyPluginAsyncZod = async (app) => {
 
   /** Net actuals per income/expense account for the year (income: credit − debit, expense: debit − credit). */
   async function report(actor: Actor, y: number) {
+    // `y` is the year the fiscal year starts in.
+    const month = (await db.selectFrom('ledger_setting').select('fiscal_year_start_month').where('organization_id', '=', actor.organizationId).executeTakeFirst())?.fiscal_year_start_month ?? 1;
+    const fy = fiscalYearOf(y, month);
     const rows = await sql<{ id: string; number: string; name: string; kind: 'income' | 'expense'; planned: string | null; actual: string }>`
       select a.id, a.number, a.name, a.kind, b.planned_cents as planned,
         coalesce((select sum(case when a.kind = 'income' then l.credit_cents - l.debit_cents else l.debit_cents - l.credit_cents end)
           from journal_line l join journal_entry e on e.id = l.entry_id
-          where l.account_id = a.id and e.entry_date between ${`${y}-01-01`}::date and ${`${y}-12-31`}::date), 0) as actual
+          where l.account_id = a.id and e.entry_date between ${fy.start}::date and ${fy.end}::date), 0) as actual
       from ledger_account a
       left join budget_line b on b.account_id = a.id and b.year = ${y}
       where a.organization_id = ${actor.organizationId} and a.kind in ('income', 'expense')
@@ -28,7 +32,7 @@ export const budgetRoutes: FastifyPluginAsyncZod = async (app) => {
     return rows.rows.map((r) => ({ accountId: r.id, number: r.number, name: r.name, kind: r.kind, plannedCents: r.planned === null ? null : Number(r.planned), actualCents: Number(r.actual) }));
   }
 
-  app.get('/ledger/budget', { schema: { tags, summary: 'Haushaltsplan eines Jahres: Plan und Ist je Einnahmen- und Ausgabenkonto (netto)', querystring: z.object({ year: z.coerce.number().int().min(2000).max(2100) }), response: { 200: z.array(row) } } }, async (req) => {
+  app.get('/ledger/budget', { schema: { tags, summary: 'Haushaltsplan eines Wirtschaftsjahres (beginnend im Jahr `year`): Plan und Ist je Einnahmen- und Ausgabenkonto (netto)', querystring: z.object({ year: z.coerce.number().int().min(2000).max(2100) }), response: { 200: z.array(row) } } }, async (req) => {
     const actor = requireActor(req);
     requireClubWide(actor, 'ledger', 'read');
     return report(actor, req.query.year);

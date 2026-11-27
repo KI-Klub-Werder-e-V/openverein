@@ -2,22 +2,27 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router';
 import type { Me } from '../../shared/auth.ts';
+import { fiscalYear, fiscalYearOf } from '../../shared/ledger.ts';
 import { api, ApiError } from '../lib/api.ts';
+import { todayLocal } from '../lib/hooks.ts';
 import { euroInput, parseEuro } from '../lib/money.ts';
 import { useTitle } from '../lib/useTitle.ts';
-import { LedgerLayout } from './Ledger.tsx';
+import { LedgerLayout, useFiscalMonth } from './Ledger.tsx';
 
 interface Row { accountId: string; number: string; name: string; kind: 'income' | 'expense'; plannedCents: number | null; actualCents: number }
 const euro = (c: number) => (c / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 
-/** Budget per income/expense account and year against the books, with the variance. */
+/** Budget per income/expense account and fiscal year against the books, with the variance. */
 export function Budget({ me }: { me: Me }) {
   useTitle('Haushaltsplan');
   const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
-  const thisYear = new Date().getFullYear();
+  // Years are fiscal years, named by the year they start in.
+  const month = useFiscalMonth();
+  const thisYear = fiscalYear(todayLocal(), month ?? 1).year;
   const year = Number(params.get('jahr') ?? thisYear);
-  const data = useQuery({ queryKey: ['budget', year], queryFn: () => api<Row[]>(`/ledger/budget?year=${year}`) });
+  const label = (y: number) => fiscalYearOf(y, month ?? 1).label;
+  const data = useQuery({ queryKey: ['budget', year], queryFn: () => api<Row[]>(`/ledger/budget?year=${year}`), enabled: !!month });
   // Edited plan values as typed text, per account; saved together.
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [state, setState] = useState<string>();
@@ -39,7 +44,7 @@ export function Budget({ me }: { me: Me }) {
   async function fromLastYear() {
     const last = await api<Row[]>(`/ledger/budget?year=${year - 1}`);
     setDraft(Object.fromEntries(last.filter((r) => r.actualCents > 0).map((r) => [r.accountId, euroInput(r.actualCents)])));
-    setState(`Ist ${year - 1} als Plan eingesetzt. Prüfen und speichern.`);
+    setState(`Ist ${label(year - 1)} als Plan eingesetzt. Prüfen und speichern.`);
   }
 
   const section = (kind: Row['kind'], title: string) => {
@@ -78,10 +83,10 @@ export function Budget({ me }: { me: Me }) {
     <LedgerLayout me={me}>
       <p className="muted" style={{ maxWidth: '72ch', marginBottom: 'var(--s-4)' }}>Planwerte je Einnahmen- und Ausgabenkonto (netto) und was bisher gebucht ist. Für den Haushaltsplan, den die Mitgliederversammlung beschließt.</p>
       <div className="toolbar">
-        <select className="select" aria-label="Jahr" value={year} onChange={(e) => { setDraft({}); setParams({ jahr: e.target.value }, { replace: true }); }}>
-          {[thisYear - 1, thisYear, thisYear + 1].map((y) => <option key={y} value={y}>{y}</option>)}
+        <select className="select" aria-label={month === 1 ? 'Jahr' : 'Wirtschaftsjahr'} value={year} onChange={(e) => { setDraft({}); setParams({ jahr: e.target.value }, { replace: true }); }}>
+          {[thisYear - 1, thisYear, thisYear + 1].map((y) => <option key={y} value={y}>{label(y)}</option>)}
         </select>
-        {canWrite && <button className="btn" onClick={() => void fromLastYear()}>Ist {year - 1} als Plan übernehmen</button>}
+        {canWrite && <button className="btn" onClick={() => void fromLastYear()}>Ist {label(year - 1)} als Plan übernehmen</button>}
         {canWrite && <button className="btn btn-primary" disabled={!Object.keys(draft).length} onClick={() => void save()}>Plan speichern</button>}
         {state && <span className="meta" role="status">{state}</span>}
       </div>
