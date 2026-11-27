@@ -5,7 +5,7 @@ import { Plus } from 'lucide-react';
 import type { Me } from '../../shared/auth.ts';
 import { formatDate } from '../../shared/dates.ts';
 import { euro } from '../../shared/fees.ts';
-import { ACCOUNT_KIND_LABEL, SPHERE_LABEL, SPHERES } from '../../shared/ledger.ts';
+import { ACCOUNT_KIND_LABEL, fiscalYear, fiscalYearOf, SPHERE_LABEL, SPHERES } from '../../shared/ledger.ts';
 import { Field } from '../components/Field.tsx';
 import { InlineEdit } from '../components/InlineEdit.tsx';
 import { PageHead } from '../components/PageHead.tsx';
@@ -20,11 +20,24 @@ export interface Account { id: string; number: string; name: string; kind: keyof
 export interface TaxRate { id: string; label: string; rateBp: number; validFrom: string; validTo: string | null }
 interface Entry { id: string; number: number; date: string; text: string; source: string; reversesNumber: number | null; reversedBy: number | null; createdBy: string | null; lines: { accountId: string; accountNumber: string; accountName: string; debitCents: number; creditCents: number; sphere: Sphere; costCenter: string | null; taxRate: string | null; text: string | null }[] }
 interface Euer { from: string; to: string; rows: { accountId: string; number: string; name: string; kind: 'income' | 'expense'; sphere: Sphere; netCents: number }[]; spheres: { sphere: Sphere; incomeCents: number; expenseCents: number; resultCents: number }[]; vat: { outputCents: number; inputCents: number }; totals: { incomeCents: number; expenseCents: number; resultCents: number }; warnings: { kind: string; message: string; href: string | null }[] }
-export interface Settings { bankAccountId: string | null; cashAccountId: string | null; feeAccountId: string | null; otherIncomeAccountId: string | null; dunningAccountId: string | null; lockDate: string | null; bankAccounts: { id: string; name: string; ibanLast4: string; ledgerAccountId: string | null }[] }
+export interface Settings { bankAccountId: string | null; cashAccountId: string | null; feeAccountId: string | null; otherIncomeAccountId: string | null; dunningAccountId: string | null; lockDate: string | null; fiscalYearStartMonth: number; fiscalYearInUse: boolean; bankAccounts: { id: string; name: string; ibanLast4: string; ledgerAccountId: string | null }[] }
 
 const SOURCE_LABEL: Record<string, string> = { manual: 'Buchung', allocation: 'Zahlung', allocation_reversal: 'Zahlung zurückgenommen', reversal: 'Storno', receipt: 'Beleg', import: 'Import', donation: 'Spende' };
 export const useAccounts = () => useQuery({ queryKey: ['ledger-accounts'], queryFn: () => api<Account[]>('/ledger/accounts') });
-const year = () => todayLocal().slice(0, 4);
+const useSettings = () => useQuery({ queryKey: ['ledger-settings'], queryFn: () => api<Settings>('/ledger/settings') });
+/** The month the club's fiscal year starts in; undefined while loading. */
+export const useFiscalMonth = () => useSettings().data?.fiscalYearStartMonth;
+const MONTHS = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+
+/** The period of a report page: from the URL, else the current fiscal year (`ready` once the settings are loaded). */
+export function useLedgerRange() {
+  const [params, setParams] = useSearchParams();
+  const month = useFiscalMonth();
+  const current = month ? fiscalYear(todayLocal(), month) : undefined;
+  const from = params.get('von') ?? current?.start ?? '';
+  const to = params.get('bis') ?? current?.end ?? '';
+  return { from, to, month: month ?? 1, ready: !!month && !!from && !!to, params, set: (f: string, t: string) => setParams({ ...Object.fromEntries(params), von: f, bis: t }) };
+}
 
 export function LedgerLayout({ me, children, action }: { me: Me; children: React.ReactNode; action?: React.ReactNode }) {
   return (
@@ -50,10 +63,8 @@ export function Journal({ me }: { me: Me }) {
   useTitle('Journal');
   const navigate = useNavigate();
   const { id } = useParams();
-  const [params, setParams] = useSearchParams();
-  const from = params.get('von') ?? `${year()}-01-01`;
-  const to = params.get('bis') ?? `${year()}-12-31`;
-  const entries = useQuery({ queryKey: ['journal', from, to], queryFn: () => api<Entry[]>(`/ledger/entries?from=${from}&to=${to}`) });
+  const { from, to, month, ready, params, set } = useLedgerRange();
+  const entries = useQuery({ queryKey: ['journal', from, to], queryFn: () => api<Entry[]>(`/ledger/entries?from=${from}&to=${to}`), enabled: ready });
   const [booking, setBooking] = useState(false);
   const { data: accounts } = useAccounts();
   const transit = new Set((accounts ?? []).filter((a) => a.kind === 'transit').map((a) => a.id));
@@ -61,7 +72,7 @@ export function Journal({ me }: { me: Me }) {
 
   return (
     <LedgerLayout me={me} action={<button className="btn btn-primary" onClick={() => setBooking(true)}><Plus size={16} aria-hidden /> Buchen</button>}>
-      <RangePicker from={from} to={to} onChange={(f, t) => setParams({ von: f, bis: t })} />
+      {ready && <RangePicker from={from} to={to} month={month} onChange={set} />}
       {entries.data?.length === 1000 && <div className="alert alert-warn" role="status" style={{ marginBottom: 'var(--s-4)' }}>Es werden die neuesten 1.000 Buchungen gezeigt. Wähle einen kürzeren Zeitraum, um alle zu sehen.</div>}
       <div className="table-wrap">
         {entries.data?.length === 0 ? (
@@ -95,12 +106,13 @@ export function Journal({ me }: { me: Me }) {
   );
 }
 
-export function RangePicker({ from, to, onChange }: { from: string; to: string; onChange: (from: string, to: string) => void }) {
-  const y = Number(from.slice(0, 4));
+/** Period picker: the fiscal years around `from` (named "2025/26" when they span two years), or any dates. */
+export function RangePicker({ from, to, month, onChange }: { from: string; to: string; month: number; onChange: (from: string, to: string) => void }) {
+  const y = fiscalYear(from, month).year;
   return (
     <div className="toolbar">
-      <div className="segmented" role="group" aria-label="Jahr">
-        {[y - 1, y, y + 1].map((x) => <button key={x} aria-pressed={from === `${x}-01-01` && to === `${x}-12-31`} onClick={() => onChange(`${x}-01-01`, `${x}-12-31`)}>{x}</button>)}
+      <div className="segmented" role="group" aria-label={month === 1 ? 'Jahr' : 'Wirtschaftsjahr'}>
+        {[y - 1, y, y + 1].map((x) => fiscalYearOf(x, month)).map((fy) => <button key={fy.year} aria-pressed={from === fy.start && to === fy.end} onClick={() => onChange(fy.start, fy.end)}>{fy.label}</button>)}
       </div>
       <input type="date" className="input" style={{ width: 'auto' }} aria-label="Von" value={from} onChange={(e) => e.target.value && onChange(e.target.value, to)} />
       <input type="date" className="input" style={{ width: 'auto' }} aria-label="Bis" value={to} onChange={(e) => e.target.value && onChange(from, e.target.value)} />
@@ -274,10 +286,9 @@ export function AccountSelect({ label, name, accounts, defaultValue, error }: { 
 
 export function EuerReport({ me }: { me: Me }) {
   useTitle('EÜR');
-  const [params, setParams] = useSearchParams();
-  const from = params.get('von') ?? `${year()}-01-01`;
-  const to = params.get('bis') ?? `${year()}-12-31`;
-  const { data } = useQuery({ queryKey: ['euer', from, to], queryFn: () => api<Euer>(`/ledger/reports/euer?from=${from}&to=${to}`) });
+  const { from, to, month, ready, set } = useLedgerRange();
+  const { data } = useQuery({ queryKey: ['euer', from, to], queryFn: () => api<Euer>(`/ledger/reports/euer?from=${from}&to=${to}`), enabled: ready });
+  const fy = ready ? fiscalYear(from, month) : undefined;
   const csv = useMemo(() => {
     if (!data) return '';
     const rows = [['Konto', 'Name', 'Art', 'Sphäre', 'Netto EUR'], ...data.rows.map((r) => [r.number, r.name, r.kind === 'income' ? 'Einnahme' : 'Ausgabe', SPHERE_LABEL[r.sphere], (r.netCents / 100).toFixed(2).replace('.', ',')])];
@@ -285,9 +296,9 @@ export function EuerReport({ me }: { me: Me }) {
   }, [data]);
   return (
     <LedgerLayout me={me}>
-      <RangePicker from={from} to={to} onChange={(f, t) => setParams({ von: f, bis: t })} />
-      {/* The treasurer's report covers a calendar year: the one the chosen range starts in. */}
-      <p style={{ marginBottom: 'var(--s-4)' }}><a className="btn" href={`/api/v1/ledger/reports/treasurer.pdf?year=${from.slice(0, 4)}`} download>Kassenbericht {from.slice(0, 4)} (PDF)</a></p>
+      {ready && <RangePicker from={from} to={to} month={month} onChange={set} />}
+      {/* The treasurer's report covers a fiscal year: the one the chosen range starts in. */}
+      {fy && <p style={{ marginBottom: 'var(--s-4)' }}><a className="btn" href={`/api/v1/ledger/reports/treasurer.pdf?year=${fy.year}`} download>Kassenbericht {fy.label} (PDF)</a></p>}
       {data && (
         <>
           {data.warnings.length > 0 && (
@@ -479,11 +490,13 @@ export function LedgerSettings({ me }: { me: Me }) {
   useTitle('Buchhaltung · Einstellungen');
   const qc = useQueryClient();
   const { data: accounts } = useAccounts();
-  const { data: s } = useQuery({ queryKey: ['ledger-settings'], queryFn: () => api<Settings>('/ledger/settings') });
+  const { data: s } = useSettings();
   const canWrite = me.permissions.ledger === 'write';
   const [error, setError] = useState<string>();
   const [lockDate, setLockDate] = useState('');
   const [reason, setReason] = useState('');
+  // A new start month waiting for confirmation (only asked once there are bookings or budget values).
+  const [fyMonth, setFyMonth] = useState<number>();
   const save = async (body: Record<string, unknown>) => {
     setError(undefined);
     try {
@@ -540,6 +553,29 @@ export function LedgerSettings({ me }: { me: Me }) {
           ))}
         </dl>
       </section>
+      <section className="section" aria-labelledby="fy">
+        <h2 id="fy" style={{ marginBottom: 'var(--s-2)' }}>Wirtschaftsjahr</h2>
+        <p className="muted" style={{ marginBottom: 'var(--s-4)', maxWidth: '70ch' }}>Nach ihm richten sich Kassenbericht, Haushaltsplan, die Jahresauswahl der Berichte, der DATEV-Export und das Paket für die Betriebsprüfung. Zuwendungsbestätigungen gelten immer für das Kalenderjahr. Stell es bei der Einrichtung ein und ändere es danach nur, wenn sich das Geschäftsjahr laut Satzung ändert.</p>
+        <dl className="facts">
+          <dt>Beginnt am</dt>
+          <dd>
+            <select className="select" aria-label="Wirtschaftsjahr beginnt am" disabled={!canWrite || fyMonth !== undefined} value={fyMonth ?? s.fiscalYearStartMonth} onChange={(e) => { const m = Number(e.target.value); if (s.fiscalYearInUse) setFyMonth(m); else void save({ fiscalYearStartMonth: m }); }}>
+              {MONTHS.map((m, i) => <option key={m} value={i + 1}>1. {m}{i === 0 ? ' (Kalenderjahr)' : ''}</option>)}
+            </select>
+          </dd>
+          <dt>Aktuell</dt>
+          <dd>{(() => { const fy = fiscalYear(todayLocal(), s.fiscalYearStartMonth); return `${fy.label}: ${formatDate(fy.start)} bis ${formatDate(fy.end)}`; })()}</dd>
+        </dl>
+        {fyMonth !== undefined && (
+          <div className="inline-form" role="group" aria-label="Wirtschaftsjahr umstellen" style={{ maxWidth: 640, marginTop: 'var(--s-4)' }}>
+            <p>Es gibt schon Buchungen. Beginnt das Wirtschaftsjahr künftig am 1. {MONTHS[fyMonth - 1]}, gilt das auch für frühere Jahre: Kassenberichte, Haushaltsplan und Prüfungspakete zeigen dann andere Zeiträume als bisher, gespeicherte Planwerte gelten für das neu geschnittene Jahr. Gebuchtes, gesperrte Zeiträume und erstellte DATEV-Exporte bleiben unverändert.</p>
+            <div className="actions-row" style={{ marginTop: 0 }}>
+              <button className="btn btn-primary" onClick={() => { void save({ fiscalYearStartMonth: fyMonth }); setFyMonth(undefined); }}>Umstellen</button>
+              <button className="btn btn-ghost" onClick={() => setFyMonth(undefined)}>Abbrechen</button>
+            </div>
+          </div>
+        )}
+      </section>
       <section className="section" aria-labelledby="lock">
         <h2 id="lock" style={{ marginBottom: 'var(--s-2)' }}>Zeitraum abschließen</h2>
         <p className="muted" style={{ marginBottom: 'var(--s-4)', maxWidth: '70ch' }}>Nach GoBD bleibt Abgeschlossenes unverändert: Bis zum Sperrdatum nimmt OpenVerein keine Buchung und keine Zahlung mehr an. {s.lockDate ? `Gesperrt bis einschließlich ${formatDate(s.lockDate)}.` : 'Noch nichts gesperrt.'}</p>
@@ -564,11 +600,11 @@ export function LedgerExports({ me }: { me: Me }) {
   const canWrite = me.permissions.ledger === 'write';
   const settings = useQuery({ queryKey: ['datev-settings'], queryFn: () => api<DatevSettings>('/ledger/datev-settings') });
   const exports = useQuery({ queryKey: ['datev-exports'], queryFn: () => api<DatevExport[]>('/ledger/exports') });
-  const y = Number(year());
   const today = todayLocal();
   // Default: from the start of the current fiscal year (a DATEV batch stays inside one).
-  const fyMonth = settings.data?.fiscalYearStartMonth ?? 1;
-  const fyStart = `${Number(today.slice(5, 7)) < fyMonth ? y - 1 : y}-${String(fyMonth).padStart(2, '0')}-01`;
+  const fyMonth = useFiscalMonth() ?? 1;
+  const current = fiscalYear(today, fyMonth);
+  const fyStart = current.start;
   const [fromInput, setFrom] = useState('');
   const from = fromInput || fyStart;
   const [to, setTo] = useState(today);
@@ -582,7 +618,7 @@ export function LedgerExports({ me }: { me: Me }) {
     const num = (k: string) => (f.get(k) ? Number(f.get(k)) : null);
     setError(undefined);
     try {
-      qc.setQueryData(['datev-settings'], await api<DatevSettings>('/ledger/datev-settings', { method: 'PUT', body: { consultant: num('consultant'), client: num('client'), accountLength: num('accountLength') ?? 4, fiscalYearStartMonth: num('fy') ?? 1 } }));
+      qc.setQueryData(['datev-settings'], await api<DatevSettings>('/ledger/datev-settings', { method: 'PUT', body: { consultant: num('consultant'), client: num('client'), accountLength: num('accountLength') ?? 4 } }));
     } catch (err) {
       setError(err instanceof ApiError ? err : undefined);
     }
@@ -612,7 +648,6 @@ export function LedgerExports({ me }: { me: Me }) {
             </div>
             <div className="form-row">
               <Field label="Länge der Sachkonten" name="accountLength" inputMode="numeric" defaultValue={s.accountLength} />
-              <Field label="Wirtschaftsjahr beginnt im Monat" name="fy" inputMode="numeric" defaultValue={s.fiscalYearStartMonth} />
             </div>
             <div className="actions-row" style={{ marginTop: 0 }}><button className="btn">Speichern</button></div>
           </form>
@@ -645,7 +680,7 @@ export function LedgerExports({ me }: { me: Me }) {
       <section className="section" aria-labelledby="z3">
         <h2 id="z3" style={{ marginBottom: 'var(--s-2)' }}>Betriebsprüfung</h2>
         <p className="muted" style={{ marginBottom: 'var(--s-4)', maxWidth: '72ch' }}>Datenträgerüberlassung nach GoBD (Z3) für ein Geschäftsjahr: index.xml im Beschreibungsstandard und Tabellen für Buchungen, Buchungszeilen, Konten, Rechnungen und Debitoren. Jeder Abruf wird protokolliert.</p>
-        <div className="actions-row" style={{ marginTop: 0 }}>{[y - 1, y].map((x) => <a key={x} className="btn" href={`/api/v1/ledger/exports/z3?year=${x}`}>Paket {x}</a>)}</div>
+        <div className="actions-row" style={{ marginTop: 0 }}>{[current.year - 1, current.year].map((x) => fiscalYearOf(x, fyMonth)).map((fy) => <a key={fy.year} className="btn" href={`/api/v1/ledger/exports/z3?year=${fy.year}`}>Paket {fy.label}</a>)}</div>
       </section>
     </LedgerLayout>
   );

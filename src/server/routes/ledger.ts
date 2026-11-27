@@ -1,7 +1,7 @@
 import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { sql } from 'kysely';
 import { z } from 'zod';
-import { account, accountInput, accountPatch, bookingInput, costCenter, euerReport, journalEntry, ledgerSettings, SPHERES, taxRate, taxRateInput, wirtschaftLimitCents } from '../../shared/ledger.ts';
+import { account, accountInput, accountPatch, bookingInput, costCenter, euerReport, fiscalYearOf, journalEntry, ledgerSettings, SPHERES, taxRate, taxRateInput, wirtschaftLimitCents } from '../../shared/ledger.ts';
 import { treasurerReportPdf } from '../ledger/report-pdf.ts';
 import { audit } from '../audit.ts';
 import { requireActor } from '../auth/session.ts';
@@ -145,10 +145,12 @@ export const ledgerRoutes: FastifyPluginAsyncZod = async (app) => {
   async function settingsDto(organizationId: string) {
     const s = await settingsOf(organizationId);
     const banks = await db.selectFrom('bank_account').select(['id', 'name', 'iban', 'ledger_account_id']).where('organization_id', '=', organizationId).where('archived_at', 'is', null).orderBy('name').execute();
-    return { bankAccountId: s.bank_account_id, cashAccountId: s.cash_account_id, feeAccountId: s.fee_account_id, otherIncomeAccountId: s.other_income_account_id, dunningAccountId: s.dunning_account_id, lockDate: s.lock_date, bankAccounts: banks.map((b) => ({ id: b.id, name: b.name, ibanLast4: b.iban.slice(-4), ledgerAccountId: b.ledger_account_id })) };
+    // Changing the fiscal year later moves the years of reports and budgets; the settings page asks first.
+    const inUse = await sql<{ used: boolean }>`select exists (select 1 from journal_entry where organization_id = ${organizationId}) or exists (select 1 from budget_line where organization_id = ${organizationId}) as used`.execute(db);
+    return { bankAccountId: s.bank_account_id, cashAccountId: s.cash_account_id, feeAccountId: s.fee_account_id, otherIncomeAccountId: s.other_income_account_id, dunningAccountId: s.dunning_account_id, lockDate: s.lock_date, fiscalYearStartMonth: s.fiscal_year_start_month, fiscalYearInUse: inUse.rows[0]!.used, bankAccounts: banks.map((b) => ({ id: b.id, name: b.name, ibanLast4: b.iban.slice(-4), ledgerAccountId: b.ledger_account_id })) };
   }
 
-  app.get('/ledger/settings', { schema: { tags, summary: 'Buchhaltungs-Einstellungen: Zuordnung der Zahlungen, Sperrdatum', response: { 200: ledgerSettings } } }, async (req) => {
+  app.get('/ledger/settings', { schema: { tags, summary: 'Buchhaltungs-Einstellungen: Zuordnung der Zahlungen, Sperrdatum, Beginn des Wirtschaftsjahres', response: { 200: ledgerSettings } } }, async (req) => {
     const actor = requireActor(req);
     requireClubWide(actor, 'ledger', 'read');
     return settingsDto(actor.organizationId);
@@ -157,11 +159,11 @@ export const ledgerRoutes: FastifyPluginAsyncZod = async (app) => {
   const accountRef = z.uuid().nullable().optional();
   app.patch(
     '/ledger/settings',
-    { schema: { tags, summary: 'Zuordnung ändern: auf welche Konten Zahlungen gebucht werden', body: z.object({ bankAccountId: accountRef, cashAccountId: accountRef, feeAccountId: accountRef, otherIncomeAccountId: accountRef, dunningAccountId: accountRef, bankAccounts: z.array(z.object({ id: z.uuid(), ledgerAccountId: z.uuid().nullable() })).optional() }), response: { 200: ledgerSettings } } },
+    { schema: { tags, summary: 'Einstellungen ändern: auf welche Konten Zahlungen gebucht werden, in welchem Monat das Wirtschaftsjahr beginnt', body: z.object({ bankAccountId: accountRef, cashAccountId: accountRef, feeAccountId: accountRef, otherIncomeAccountId: accountRef, dunningAccountId: accountRef, fiscalYearStartMonth: z.number().int().min(1).max(12).optional(), bankAccounts: z.array(z.object({ id: z.uuid(), ledgerAccountId: z.uuid().nullable() })).optional() }), response: { 200: ledgerSettings } } },
     async (req) => {
       const actor = requireActor(req);
       requireClubWide(actor, 'ledger', 'write');
-      await settingsOf(actor.organizationId);
+      const before = await settingsOf(actor.organizationId);
       const accounts = await accountsOf(db, actor.organizationId);
       const b = req.body;
       const check = (id: string | null | undefined, kinds: string[], field: string) => {
@@ -174,11 +176,11 @@ export const ledgerRoutes: FastifyPluginAsyncZod = async (app) => {
       for (const f of ['feeAccountId', 'otherIncomeAccountId', 'dunningAccountId'] as const) check(b[f], ['income'], f);
       for (const x of b.bankAccounts ?? []) check(x.ledgerAccountId, ['money'], 'bankAccounts');
       await db.transaction().execute(async (tx) => {
-        const map = { bankAccountId: 'bank_account_id', cashAccountId: 'cash_account_id', feeAccountId: 'fee_account_id', otherIncomeAccountId: 'other_income_account_id', dunningAccountId: 'dunning_account_id' } as const;
+        const map = { bankAccountId: 'bank_account_id', cashAccountId: 'cash_account_id', feeAccountId: 'fee_account_id', otherIncomeAccountId: 'other_income_account_id', dunningAccountId: 'dunning_account_id', fiscalYearStartMonth: 'fiscal_year_start_month' } as const;
         const set = Object.fromEntries(Object.entries(map).filter(([k]) => b[k as keyof typeof map] !== undefined).map(([k, col]) => [col, b[k as keyof typeof map] ?? null]));
         if (Object.keys(set).length) await tx.updateTable('ledger_setting').set(set).where('organization_id', '=', actor.organizationId).execute();
         for (const x of b.bankAccounts ?? []) await tx.updateTable('bank_account').set({ ledger_account_id: x.ledgerAccountId }).where('id', '=', x.id).where('organization_id', '=', actor.organizationId).execute();
-        await audit(tx, actor.organizationId, actor, { action: 'ledger.settings_updated', entityType: 'organization', entityId: actor.organizationId, diff: Object.fromEntries(Object.entries(set).map(([k, v]) => [k, [null, v]])) });
+        await audit(tx, actor.organizationId, actor, { action: 'ledger.settings_updated', entityType: 'organization', entityId: actor.organizationId, diff: Object.fromEntries(Object.entries(set).map(([k, v]) => [k, [before[k as keyof typeof before] ?? null, v]])) });
       });
       return settingsDto(actor.organizationId);
     },
@@ -334,9 +336,12 @@ export const ledgerRoutes: FastifyPluginAsyncZod = async (app) => {
     if (open.n) out.push({ kind: 'unmatched', message: `${open.n} Kontobewegung${open.n === 1 ? '' : 'en'} im Zeitraum noch nicht zugeordnet: Die EÜR ist unvollständig.`, href: '/bank/abgleich' });
     const unmapped = await db.selectFrom('ledger_account').select(sql<number>`count(*)::int`.as('n')).where('organization_id', '=', organizationId).where('datev_number', 'is', null).where((eb) => eb.exists(eb.selectFrom('journal_line').select('journal_line.id').whereRef('journal_line.account_id', '=', 'ledger_account.id'))).executeTakeFirstOrThrow();
     if (unmapped.n) out.push({ kind: 'datev', message: `${unmapped.n} benutzte${unmapped.n === 1 ? 's Konto hat' : ' Konten haben'} noch keine DATEV-Nummer.`, href: '/buchhaltung/konten' });
-    // Economic sphere: gross income (net plus output VAT) per calendar year against the § 64 AO limit.
+    // Economic sphere: gross income (net plus output VAT) per fiscal year against the § 64 AO limit. The window may
+    // span more than one fiscal year, so group by it (for a calendar year, startMonth 1, this is the calendar year).
+    const month = (await db.selectFrom('ledger_setting').select('fiscal_year_start_month').where('organization_id', '=', organizationId).executeTakeFirst())?.fiscal_year_start_month ?? 1;
     const w = await sql<{ y: number; gross: number }>`
-      select extract(year from e.entry_date)::int as y, coalesce(sum(l.credit_cents - l.debit_cents), 0)::bigint as gross
+      select (extract(year from e.entry_date)::int - case when extract(month from e.entry_date)::int < ${month} then 1 else 0 end) as y,
+        coalesce(sum(l.credit_cents - l.debit_cents), 0)::bigint as gross
       from journal_line l join journal_entry e on e.id = l.entry_id join ledger_account a on a.id = l.account_id
       where l.organization_id = ${organizationId} and l.sphere = 'wirtschaft' and e.entry_date between ${from}::date and ${to}::date
         and (a.kind = 'income' or a.id in (select output_account_id from tax_rate where organization_id = ${organizationId}))
@@ -344,9 +349,10 @@ export const ledgerRoutes: FastifyPluginAsyncZod = async (app) => {
     for (const { y, gross: g } of w.rows) {
       const gross = Number(g);
       const limit = wirtschaftLimitCents(y);
+      const fyLabel = fiscalYearOf(y, month).label;
       const label = (limit / 100).toLocaleString('de-DE') + ' €';
-      if (gross > limit) out.push({ kind: 'limit', message: `Wirtschaftlicher Geschäftsbetrieb ${y}: Einnahmen über ${label} (Besteuerungsgrenze nach § 64 AO). Sprich mit Deiner Steuerberatung.`, href: null });
-      else if (gross >= limit * 0.8) out.push({ kind: 'limit-near', message: `Wirtschaftlicher Geschäftsbetrieb ${y}: Einnahmen bei ${Math.round((gross / limit) * 100)} % der Besteuerungsgrenze von ${label}.`, href: null });
+      if (gross > limit) out.push({ kind: 'limit', message: `Wirtschaftlicher Geschäftsbetrieb ${fyLabel}: Einnahmen über ${label} (Besteuerungsgrenze nach § 64 AO). Sprich mit Deiner Steuerberatung.`, href: null });
+      else if (gross >= limit * 0.8) out.push({ kind: 'limit-near', message: `Wirtschaftlicher Geschäftsbetrieb ${fyLabel}: Einnahmen bei ${Math.round((gross / limit) * 100)} % der Besteuerungsgrenze von ${label}.`, href: null });
     }
     return out;
   }
@@ -407,15 +413,14 @@ export const ledgerRoutes: FastifyPluginAsyncZod = async (app) => {
     return rows.rows.filter((r) => Number(r.opening) || Number(r.debit) || Number(r.credit)).map((r) => ({ accountId: r.id, number: r.number, name: r.name, kind: r.kind, openingCents: Number(r.opening), debitCents: Number(r.debit), creditCents: Number(r.credit), closingCents: Number(r.opening) + Number(r.debit) - Number(r.credit) }));
   }
 
-  app.get('/ledger/reports/treasurer.pdf', { schema: { tags, summary: 'Kassenbericht für die Mitgliederversammlung: Bestände je Geldkonto, Einnahmen und Ausgaben nach Sphären und Konten', querystring: z.object({ year: z.coerce.number().int().min(2000).max(2100) }) } }, async (req, reply) => {
+  app.get('/ledger/reports/treasurer.pdf', { schema: { tags, summary: 'Kassenbericht für die Mitgliederversammlung: Bestände je Geldkonto, Einnahmen und Ausgaben nach Sphären und Konten für das Wirtschaftsjahr, das im Jahr `year` beginnt', querystring: z.object({ year: z.coerce.number().int().min(2000).max(2100) }) } }, async (req, reply) => {
     const actor = requireActor(req);
     requireClubWide(actor, 'ledger', 'read');
     await syncAllocations(db, actor.organizationId);
-    const from = `${req.query.year}-01-01`;
-    const to = `${req.query.year}-12-31`;
+    const fy = fiscalYearOf(req.query.year, (await settingsOf(actor.organizationId)).fiscal_year_start_month);
     const org = await db.selectFrom('organization').select(['name', 'is_demo']).where('id', '=', actor.organizationId).executeTakeFirstOrThrow();
-    const pdf = await treasurerReportPdf({ club: org.name, year: req.query.year, euer: await euer(actor, from, to), money: (await balances(actor, from, to)).filter((b) => b.kind === 'money'), demo: org.is_demo });
+    const pdf = await treasurerReportPdf({ club: org.name, year: fy, euer: await euer(actor, fy.start, fy.end), money: (await balances(actor, fy.start, fy.end)).filter((b) => b.kind === 'money'), demo: org.is_demo });
     await audit(db, actor.organizationId, actor, { action: 'ledger.report_treasurer', entityType: 'organization', entityId: actor.organizationId, diff: { year: [null, req.query.year] } });
-    return reply.header('content-type', 'application/pdf').header('content-disposition', `attachment; filename="Kassenbericht-${req.query.year}.pdf"`).header('cache-control', 'private, no-store').send(pdf);
+    return reply.header('content-type', 'application/pdf').header('content-disposition', `attachment; filename="Kassenbericht-${fy.label.replace('/', '-')}.pdf"`).header('cache-control', 'private, no-store').send(pdf);
   });
 };

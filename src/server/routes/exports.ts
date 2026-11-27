@@ -9,6 +9,7 @@ import { cp1252, zip } from '../exports/zip.ts';
 import { notFound, Problem } from '../http/problem.ts';
 import { syncAllocations } from '../ledger/service.ts';
 import { requireClubWide } from '../policy.ts';
+import { fiscalYear, fiscalYearOf } from '../../shared/ledger.ts';
 
 const tags = ['ledger'];
 
@@ -19,35 +20,33 @@ const exportDto = z.object({ id: z.uuid(), mode: z.enum(['delta', 'full']), from
 const csvCell = (v: string | number | null) => (typeof v === 'number' ? String(v) : `"${(v ?? '').replace(/[\r\n]+/g, ' ').replace(/"/g, '""')}"`);
 const money = (c: number) => (c / 100).toFixed(2).replace('.', ',');
 const de = (d: string) => d.split('-').reverse().join('.');
-/** The fiscal year that contains `date`, for a year starting in `startMonth`. */
-export function fiscalYear(date: string, startMonth: number) {
-  const y = Number(date.slice(0, 4)) - (Number(date.slice(5, 7)) < startMonth ? 1 : 0);
-  const start = `${y}-${String(startMonth).padStart(2, '0')}-01`;
-  const end = new Date(Date.UTC(y + 1, startMonth - 1, 0)).toISOString().slice(0, 10);
-  return { start, end };
-}
 const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
   const { db } = app;
 
+  const datevDto = async (organizationId: string) => {
+    const s = await db.selectFrom('ledger_setting').selectAll().where('organization_id', '=', organizationId).executeTakeFirst();
+    return { consultant: s?.datev_consultant ?? null, client: s?.datev_client ?? null, accountLength: s?.datev_account_length ?? 4, fiscalYearStartMonth: s?.fiscal_year_start_month ?? 1 };
+  };
+
   app.get('/ledger/datev-settings', { schema: { tags, summary: 'DATEV-Kopfdaten (Beraternummer, Mandantennummer, Kontenlänge, Wirtschaftsjahr)', response: { 200: datevSettings } } }, async (req) => {
     const actor = requireActor(req);
     requireClubWide(actor, 'ledger', 'read');
-    const s = await db.selectFrom('ledger_setting').selectAll().where('organization_id', '=', actor.organizationId).executeTakeFirst();
-    return { consultant: s?.datev_consultant ?? null, client: s?.datev_client ?? null, accountLength: s?.datev_account_length ?? 4, fiscalYearStartMonth: s?.fiscal_year_start_month ?? 1 };
+    return datevDto(actor.organizationId);
   });
 
-  app.put('/ledger/datev-settings', { schema: { tags, summary: 'DATEV-Kopfdaten speichern', body: datevSettings, response: { 200: datevSettings } } }, async (req) => {
+  // The fiscal year is set in the ledger settings; here it stays optional for clients that still send it.
+  app.put('/ledger/datev-settings', { schema: { tags, summary: 'DATEV-Kopfdaten speichern (das Wirtschaftsjahr gehört zu den Buchhaltungs-Einstellungen)', body: datevSettings.extend({ fiscalYearStartMonth: datevSettings.shape.fiscalYearStartMonth.optional() }), response: { 200: datevSettings } } }, async (req) => {
     const actor = requireActor(req);
     requireClubWide(actor, 'ledger', 'write');
     const b = req.body;
     await db.transaction().execute(async (tx) => {
       await sql`select ov_seed_ledger(${actor.organizationId}::uuid)`.execute(tx);
-      await tx.updateTable('ledger_setting').set({ datev_consultant: b.consultant, datev_client: b.client, datev_account_length: b.accountLength, fiscal_year_start_month: b.fiscalYearStartMonth }).where('organization_id', '=', actor.organizationId).execute();
+      await tx.updateTable('ledger_setting').set({ datev_consultant: b.consultant, datev_client: b.client, datev_account_length: b.accountLength, ...(b.fiscalYearStartMonth ? { fiscal_year_start_month: b.fiscalYearStartMonth } : {}) }).where('organization_id', '=', actor.organizationId).execute();
       await audit(tx, actor.organizationId, actor, { action: 'ledger.datev_settings', entityType: 'organization', entityId: actor.organizationId });
     });
-    return b;
+    return datevDto(actor.organizationId);
   });
 
   app.get('/ledger/exports', { schema: { tags, summary: 'Bisherige DATEV-Exporte', response: { 200: z.array(exportDto) } } }, async (req) => {
@@ -126,7 +125,7 @@ export const exportRoutes: FastifyPluginAsyncZod = async (app) => {
       requireClubWide(actor, 'ledger', 'read');
       await syncAllocations(db, actor.organizationId);
       const month = (await db.selectFrom('ledger_setting').select('fiscal_year_start_month').where('organization_id', '=', actor.organizationId).executeTakeFirst())?.fiscal_year_start_month ?? 1;
-      const { start: from, end: to } = fiscalYear(`${req.query.year}-${String(month).padStart(2, '0')}-01`, month);
+      const { start: from, end: to } = fiscalYearOf(req.query.year, month);
       const org = await db.selectFrom('organization').select(['name', 'city']).where('id', '=', actor.organizationId).executeTakeFirstOrThrow();
       // One snapshot: an entry posted meanwhile must not leave lines without their entry number.
       const { entries, reversed, lines, accounts, invoices } = await db.transaction().setIsolationLevel('repeatable read').setAccessMode('read only').execute(async (tx) => {

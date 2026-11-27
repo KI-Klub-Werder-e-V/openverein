@@ -67,4 +67,25 @@ describe('exports', () => {
     const log = await ctx.db.selectFrom('audit_event').select('action').where('action', '=', 'ledger.z3_export').execute();
     expect(log).toHaveLength(1);
   });
+
+  it('cuts the tax-audit package and the DATEV batches by a fiscal year from April to March', async () => {
+    await admin.patch('/ledger/settings', { fiscalYearStartMonth: 4 });
+    await admin.post('/ledger/bookings', { kind: 'expense', date: '2026-03-31', text: 'Letzter Tag', moneyAccountId: acc('1100'), lines: [{ grossCents: 1000, accountId: acc('6200') }] });
+    await admin.post('/ledger/bookings', { kind: 'expense', date: '2026-04-01', text: 'Erster Tag', moneyAccountId: acc('1100'), lines: [{ grossCents: 2000, accountId: acc('6200') }] });
+    const z3 = async (year: number) => unzip((await ctx.app.inject({ url: `/api/v1/ledger/exports/z3?year=${year}`, headers: { cookie } })).rawPayload)['buchungen.csv']!;
+    expect(await z3(2025)).toContain('"31.03.2026";"Letzter Tag"');
+    expect(await z3(2025)).not.toContain('Erster Tag');
+    expect(await z3(2026)).toContain('"01.04.2026";"Erster Tag"');
+    expect(await z3(2026)).not.toContain('Letzter Tag');
+    // A DATEV batch stays inside one fiscal year; its header names the start of that year.
+    await admin.put('/ledger/datev-settings', { consultant: 1001, client: 1, accountLength: 4 });
+    await admin.patch(`/ledger/accounts/${acc('1100')}`, { datevNumber: '1800' });
+    await admin.patch(`/ledger/accounts/${acc('6200')}`, { datevNumber: '4210' });
+    expect((await admin.post('/ledger/exports/datev', { from: '2026-03-01', to: '2026-04-30', mode: 'full' })).status).toBe(400);
+    const ok = await admin.post('/ledger/exports/datev', { from: '2026-01-01', to: '2026-03-31', mode: 'full' });
+    expect(ok.status, JSON.stringify(ok.body)).toBe(201);
+    const file = await ctx.app.inject({ url: `/api/v1/ledger/exports/${ok.body.id}/file`, headers: { cookie } });
+    const header = Object.values(unzip(file.rawPayload))[0]!.split('\r\n')[0]!.split(';');
+    expect(header[12]).toBe('20250401');
+  });
 });

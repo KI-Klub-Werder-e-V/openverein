@@ -55,6 +55,10 @@ export const ledgerSettings = z.object({
   otherIncomeAccountId: z.uuid().nullable(),
   dunningAccountId: z.uuid().nullable(),
   lockDate: z.string().nullable(),
+  /** month (1–12) the fiscal year starts in, on its first day */
+  fiscalYearStartMonth: z.number().int().min(1).max(12),
+  /** whether bookings or budget values exist, so that changing the fiscal year moves past years */
+  fiscalYearInUse: z.boolean(),
   bankAccounts: z.array(z.object({ id: z.uuid(), name: z.string(), ibanLast4: z.string(), ledgerAccountId: z.uuid().nullable() })),
 });
 
@@ -68,3 +72,17 @@ export const euerReport = z.object({
   totals: z.object({ incomeCents: z.number(), expenseCents: z.number(), resultCents: z.number() }),
   warnings: z.array(z.object({ kind: z.string(), message: z.string(), href: z.string().nullable() })),
 });
+
+/** The fiscal year that contains `date` (YYYY-MM-DD), for a year starting on the first of `startMonth`. */
+export function fiscalYear(date: string, startMonth: number) {
+  const y = Number(date.slice(0, 4)) - (Number(date.slice(5, 7)) < startMonth ? 1 : 0);
+  return fiscalYearOf(y, startMonth);
+}
+
+/** The fiscal year starting in `startYear`: its first and last day and its name ("2025", or "2025/26" if it spans two years). */
+export function fiscalYearOf(startYear: number, startMonth: number) {
+  const start = `${startYear}-${String(startMonth).padStart(2, '0')}-01`;
+  const end = new Date(Date.UTC(startYear + 1, startMonth - 1, 0)).toISOString().slice(0, 10);
+  const label = startMonth === 1 ? String(startYear) : `${startYear}/${String((startYear + 1) % 100).padStart(2, '0')}`;
+  return { year: startYear, start, end, label };
+}
